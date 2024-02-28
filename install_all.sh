@@ -1,28 +1,17 @@
 #!/usr/bin/env bash
-# set -eo pipefail
-PREFIX="${PREFIX:-/usr/local}"
+set -euo pipefail
 
-
-# get some curl headers if we need them
-GH_TOKEN="${GH_TOKEN:-}"
-gh_auth=()
-if [ -n "$GH_TOKEN" ]; then
-    gh_auth=("-H" "Authorization: Bearer $GH_TOKEN")
-fi
-
-# stubbing these in, the logic will need work if these are actually dynamic
-arch_x64="$(uname -m)"
-arch_amd64="$(if [ "$arch_x64" = "x86_64" ]; then echo "amd64"; else echo "$arch_x64"; fi)"
-kernel="$( if [ "$(uname -s)" == "Linux" ]; then echo "linux"; else echo "$(uname -s)"; fi )"
-
-# common_variables
+# declare common variables we will use later
 version=""
 ersion="" # without the v lol
 
-github_apps_fname_lookup=()
-github_apps_fname_lookup["gh"]='gh_${ersion}_${kernel}_${arch_x64}.tar.gz'
-github_apps_fname_lookup["yq"]='yq_${kernel}_${arch_amd64}'
 
+_get_machine_info() {
+    # right now we are only linux x64
+    ARCH_x64="x86_64"
+    ARCH_AMD="amd64"
+    KERNEL="linux"
+}
 assert_executable() { chmod +x "$1"; }
 simple_install() {
     local src dest
@@ -33,48 +22,62 @@ simple_install() {
     assert_executable "$dest"
 }
 
+_get_machine_info
+
+app_table=( yq gh shfmt )
+export DEPENDENCIES=( yq )
+# app   source              url/repo                               artifact-format
+yq=(   "github"           "mikefarah/yq"                           'yq_${KERNEL}_${ARCH_AMD}' )
+gh=(   "github"           "cli/cli"                                'gh_${ersion}_${KERNEL}_${ARCH_x64}.tar.gz' )
+shfmt=( "github"          "mvdan/sh"                               'shfmt_${version}_${KERNEL}_${ARCH_AMD}' )
+
+SHORT_OPTS="h"
+LONG_OPTS="help,install-dependencies,prefix:"
+
+ARGS=$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$(basename $0)" -- "$@")
+if [ $? -ne 0 ]; then print "Unable to parse options... ttyl" ; exit 1; fi
+eval set -- "$ARGS"
+
+PREFIX="$PWD/tmp"
+
+while true; do
+    case "$1" in
+        --install-dependencies)
+            INSTALL_DEPENDENCIES=true
+            shift
+            ;;
+        --prefix)
+            PREFIX="$2"
+            shift 2
+            ;;
+        -h|--help)
+            HELP=true
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        install)
+            INSTALL=true
+            shift
+            break
+            ;;
+        *)
+            echo "Internal error!"
+            exit 1
+            ;;
+    esac
+done
 tmp_working_dir="$(mktemp -d installer.XXXXXX)"
 mkdir -p "$tmp_working_dir/"{bin,installing}
 trap 'rm -rf "$tmp_working_dir"' EXIT
 
-# check this first, since we will probably want to use this later to install other things
-if [ "$1" == "--install-yq" ]; then
-    filename="$(eval 'echo "${github_apps_fname_lookup[yq]}"')"
-    curl -sSL "https://github.com/mikefarah/yq/releases/latest/download/$filename" -o "$tmp_working_dir/bin/yq"
-    assert_executable "$tmp_working_dir/bin/yq"
-    simple_install "$tmp_working_dir/bin/yq" "$PREFIX/bin/yq"
-    exit 0
+
+if [ "$INSTALL_DEPENDENCIES" = true ]; then
+
 fi
 
-all_installed=true
-for app in curl grep; do
-    if ! command -v "$app" &>/dev/null; then
-        printf "Error: %s is not installed\n" "$app" >&2
-        all_installed=false
-    fi
-done
-if ! $all_installed; then
-    printf "Please install the missing dependencies and try again\n"
-    exit 1
-fi
-
-
-get_version_tag_from_latest() {
-    local repo tag
-    repo="$1"
-    tag="$(curl -s "https://api.github.com/repos/$repo/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')"
-    ersion="${tag#v}"
-    version="v${ersion}"
-    echo "$tag"
-
-}
-
-install_gh_repo_release() {
-    local version repo
-    repo="$1"
-    latest="$(get_version_tag_from_latest "$repo")"
-    version="${2:-$latest}"
-}
 
 # install github
 install_gh_cli() {
