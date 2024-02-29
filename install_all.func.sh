@@ -1,105 +1,185 @@
-i() {
-    local zero_idx shell
-    zero_idx="$1"
-    shell="$(ps -p $$ -o cmd=)"
-    if [[ "$shell" == *"zsh" ]]; then
-        echo $(( $zero_idx + 1 ))
-    elif [[ "$shell" == *"ash" ]]; then
-        echo $(( $zero_idx ))
-    else
-        echo "unknown shell $shell"
-        return 1
-    fi
+# shellcheck disable=SC2064
+
+idx() {
+  # bash is 0 zero indexed, most other shells are 1 indexed
+  # this corrects it (sic) to 1 indexed
+  local zero_idx shell
+  zero_idx="$1"
+  shell="$(ps -p $$ -o cmd=)"
+  if [[ "$shell" == *"ash" ]]; then
+    echo $((zero_idx + 1))
+  else
+    echo $((zero_idx))
+  fi
 }
 
 # get the current shell
-SHELL=$(ps -p $$ -o args= | awk '{print $1}')
 
 _get_machine_info() {
-    # right now we are only linux x64
-    export ARCH_x64="x86_64"
-    export ARCH_AMD="amd64"
-    export KERNEL="linux"
+  # right now we are only linux x64
+  export ARCH_x64="x86_64"
+  export ARCH_AMD="amd64"
+  export KERNEL="linux"
 }
 
 assert_executable() { chmod +x "$1"; }
 simple_install() {
-    local src dest
-    src="$1"
-    dest="$2"
-    mkdir -p "$(dirname "$dest")"
-    mv "$src" "$dest"
-    assert_executable "$dest"
+  local src dest
+  src="$1"
+  dest="$2"
+  mkdir -p "$(dirname "$dest")"
+  mv "$src" "$dest"
+  assert_executable "$dest"
 }
 
 check_dependencies() {
-    local all_installed=true
-    for app in yq curl grep; do
-        if ! command -v "$app" &>/dev/null; then
-            printf "Error: %s is not installed\n" "$app" >&2
-            all_installed=false
-        fi
-    done
-    if ! $all_installed; then
-        printf "Please install the missing dependencies and try again\n"
-        exit 1
+  local all_installed=true
+  for app in yq curl grep; do
+    if ! command -v "$app" &> /dev/null; then
+      printf "Error: %s is not installed\n" "$app" >&2
+      all_installed=false
     fi
+  done
+  if [[ $all_installed == "false" ]]; then
+    printf "Please install the missing dependencies and try again\n"
+    return 1
+  fi
 }
 
 get_tempdir() {
-    local tmpdir
-    tmpdir="$(mktemp -dt "install-all-XXXXXX")"
-    trap "rm -rf $tmpdir" EXIT
-    echo "$tmpdir"
+  local tmpdir
+  tmpdir="$(mktemp -dt "install-all-XXXXXX")"
+  echo "$tmpdir"
 }
 
 install_dependencies() {
-set -x
-    local tmp_working_dir
-    tmp_working_dir="$(get_tempdir)"
-    mkdir -p "$tmp_working_dir/bin"
-    for dep in "${DEPENDENCIES[@]}"; do
-        printf "Installing dependency %s\n" "$dep"
-        case "$dep" in
-            yq)
-                filename="$(eval "echo \"${yq[$(i 2)]}\"")"
-                curl -sSL "https://github.com/mikefarah/yq/releases/latest/download/$filename" -o "$tmp_working_dir/bin/yq"
-                assert_executable "$tmp_working_dir/bin/yq"
-                simple_install "$tmp_working_dir/bin/yq" "$PREFIX/bin/yq"
-                return 0 ;;
-            *)
-                printf "Unknown dependency %s\n" "$dep"
-                return 1 ;;
-        esac
-    done
-    }
+  local tmp_working_dir
+  tmp_working_dir="$(get_tempdir)"
+  trap "rm -rf $tmp_working_dir" RETURN
+  mkdir -p "$tmp_working_dir/bin"
+  for dep in "${DEPENDENCIES[@]}"; do
+    printf "Installing dependency %s\n" "$dep"
+    case "$dep" in
+      yq)
+        filename="yq_linux_amd64"
+        curl -sSL "https://github.com/mikefarah/yq/releases/latest/download/$filename" -o "$tmp_working_dir/bin/yq"
+        assert_executable "$tmp_working_dir/bin/yq"
+        simple_install "$tmp_working_dir/bin/yq" "$PREFIX/bin/yq"
+        return 0
+        ;;
+      *)
+        printf "Unknown dependency %s\n" "$dep"
+        return 1
+        ;;
+    esac
+  done
+}
 
 get_ersion() {
-    echo "${1#v}"
+  echo "${1#v}"
 }
 
 get_github_version_from_latest() {
-    local repo tag
-    repo="$1"
-    tag="$(curl -s "https://api.github.com/repos/$repo/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')"
-    version="v${tag#v}"
-    echo "$version"
+  local repo tag
+  repo="$1"
+  tag="$(curl -s "https://api.github.com/repos/$repo/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')"
+  version="v${tag#v}"
+  echo "$version"
+}
+
+extract_download_url() {
+  stdin="$(cat)"
+  if command -v python3 &> /dev/null; then
+    echo "$stdin" | _extract_download_url_python "$1"
+  else
+    echo "$stdin" | _extract_download_url_yq "$1"
+  fi
+}
+
+_extract_download_url_yq() {
+  stdin="$(cat)"
+  echo "$stdin" \
+    | yq -roj ".assets[] | select( .name == \"${1}\") | .browser_download_url"
+}
+
+_extract_download_url_python() {
+  stdin="$(cat)"
+  tempfile="$(mktemp)"
+  trap "rm -f $tempfile" RETURN
+  cat > "$tempfile" << PY
+import sys, json
+data = json.loads(sys.stdin.read())
+for asset in data["assets"]:
+    if asset["name"] == sys.argv[1]:
+        print(asset["browser_download_url"])
+        quit()
+PY
+  echo "$stdin" | python "$tempfile" "$1"
 }
 
 install_gh_repo_release() {
-    local version repo
-    repo="$1"
-    latest="$(get_github_version_tag_from_latest "$repo")"
-    curl  into this yq -oj '.assets[] | select( .name == "shfmt_v3.8.0_linux_amd64") | .browser_download_url'
-
-    version="${2:-$latest}"
+  local version repo latest_version file_format
+  repo="$1"
+  file_format="$2"
+  version="${3:-latest}"
+  if [[ "$file_format" == *"ersion"* ]]; then
+    # we may need the version before requesting the latest file
+    if [[ "$version" == "latest" ]]; then
+      version="$(get_github_version_from_latest "$repo")"
+    else
+      # make sure it starts with a v
+      version="v${version#v}"
+    fi
+    version="$(get_github_version_from_latest "$repo")"
+  fi
+  filename="$(eval "echo $file_format")"
+  if [[ "$version" == "latest" ]]; then
+    url="https://api.github.com/repos/$repo/releases/latest"
+  else
+    url="https://api.github.com/repos/$repo/releases/tags/$version"
+  fi
+  download_url="$(curl -sfSL "$url" | extract_download_url "$filename")"
 }
 
 # install github
 install_gh_cli() {
-    local version
-    version="${1:-latest}"
-    install_gh_repo_release "cli/cli" "$version"
+  local version
+  version="${1:-latest}"
+  install_gh_repo_release "cli/cli" "$version"
+}
+
+install_this() {
+  local src
+  src="$1"
+  remote="$2"
+  file_format="$3"
+  version="${4:-latest}"
+  case "$src" in
+    github)
+      install_gh_repo_release "$remote" "$file_format" "$version"
+      ;;
+    *)
+      printf "Unknown source %s\n" "$src"
+      return 1
+      ;;
+  esac
+}
+
+_ask() {
+  local yn
+  if [ -n "${quiet:-}" ]; then
+    return 0
+  fi
+
+  read -r -p "> $1: " yn
+  case $yn in
+    [Yy]* | "")
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 # handle_tar() {
