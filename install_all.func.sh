@@ -1,4 +1,5 @@
 # shellcheck disable=SC2064
+. ./header.sh
 
 idx() {
   # bash is 0 zero indexed, most other shells are 1 indexed
@@ -15,12 +16,7 @@ idx() {
 
 # get the current shell
 
-_get_machine_info() {
-  # right now we are only linux x64
-  export ARCH_x64="x86_64"
-  export ARCH_AMD="amd64"
-  export KERNEL="linux"
-}
+
 
 assert_executable() { chmod +x "$1"; }
 simple_install() {
@@ -117,6 +113,13 @@ PY
   echo "$stdin" | python "$tempfile" "$1"
 }
 
+download_to() {
+  local url dest
+  url="$1"
+  dest="$2"
+  curl -sfSL "$url" -o "$dest"
+}
+
 install_gh_repo_release() {
   local version repo latest_version file_format
   repo="$1"
@@ -149,10 +152,20 @@ install_gh_cli() {
 }
 
 install_this() {
-  local src
-  src="$1"
-  remote="$2"
-  file_format="$3"
+  local to_install location version
+  to_install="$1"
+  location="$(app_lookup "$to_install" "location")"
+  if [[ -z "$location" ]]; then
+    to_install="$(app_lookup_name_from_repo "$to_install")"
+    location="$(app_lookup "$to_install" "location")"    
+  fi
+  if [[ -z "$location" ]]; then
+    printf "Could not find %s\n" "$to_install"
+    return 1
+  fi
+  src="$(app_lookup "$to_install" "source")"
+  
+  
   version="${4:-latest}"
   case "$src" in
     github)
@@ -182,8 +195,25 @@ _ask() {
   esac
 }
 
-# handle_tar() {
+install_kubectl() {
+  local version
+  version="${1:-latest}"
+  if [[ "$version" == "latest" ]]; then
+    version="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
+  fi
+  ersion="${version#v}"
+  download_to "https://dl.k8s.io/release/v${ersion}/bin/linux/amd64/kubectl" "$PREFIX/bin/kubectl"
+  assert_executable "$PREFIX/bin/kubectl"
+}
 
-# }
-
-# install_gh cli/cli
+install_helm() {
+  local version
+  version="${1:-latest}"
+  if [[ "$version" == "latest" ]]; then
+    version="$(get_github_version_from_latest "helm/helm")"
+  fi
+  tmpdir="$(get_tempdir)"
+  trap "rm -rf $tmpdir" RETURN
+  filename="helm-v${version#v}-linux-amd64.tar.gz"
+  download_to "https://get.helm.sh/$filename" "$tmpdir/$filename"
+}
