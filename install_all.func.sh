@@ -164,12 +164,12 @@ install_this() {
     return 1
   fi
   src="$(app_lookup "$to_install" "source")"
-  
+  template="$(app_lookup "$to_install" "template")"
   
   version="${4:-latest}"
   case "$src" in
     github)
-      install_gh_repo_release "$remote" "$file_format" "$version"
+      install_gh_repo_release "$location" "$template" "$version"
       ;;
     *)
       printf "Unknown source %s\n" "$src"
@@ -216,4 +216,37 @@ install_helm() {
   trap "rm -rf $tmpdir" RETURN
   filename="helm-v${version#v}-linux-amd64.tar.gz"
   download_to "https://get.helm.sh/$filename" "$tmpdir/$filename"
+  tar -C "$tmpdir" -xzf "$tmpdir/$filename" "linux-amd64/helm"
+  simple_install "$tmpdir/linux-amd64/helm" "$PREFIX/bin/helm"
+}
+
+try_your_best() {
+  in="$1"
+  result="$(grep "$ARCH_x86" <<< "$in")"
+  if [ "$(wc -l <<< $result)" -eq 1 ]; then
+    echo "$result"
+  fi
+  result="$(grep "$ARCH_AMD" <<< "$in")"
+  if [ "$(wc -l <<< $result)" -eq 1 ]; then
+    echo "$result"
+  fi
+  result="$(grep -i "$KERNEL" <<< "$result")"
+  if [ "$(wc -l <<< $result)" -eq 1 ]; then
+    echo "$result"
+  fi
+  echo "Could not find a match"
+  return 1
+}
+
+extract_binary() {
+  # kinda works if it's top level
+  archive="$1"
+  destination="$2"
+  exec_files="$(tar -v -tf "$1" | grep -P '\-rwx')"
+  if [ "$(wc -l <<< "$exec_files")" -eq 1 ]; then
+    filename="$(echo "$exec_files" | cut -d\  -f 6)"
+    tar -C "$destination" -xzf "$archive" "$filename"
+    return 0
+  fi
+  return 1
 }
