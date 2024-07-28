@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC3043,SC2001 source=./semver.sh
+# SCRIPTSH_VERSION=0.0.1
 # sourced from https://github.com/warehouseman/semver_shell/blob/master/semver.sh
 # then linted with shellcheck and tweaked for preferences
 source "$(dirname "${BASH_SOURCE[0]}")/semver.sh"

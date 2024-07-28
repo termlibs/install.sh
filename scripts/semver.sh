@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC3043,SC2001
+# SCRIPTSH_VERSION=0.0.1
 # sourced from https://github.com/cloudflare/semver_bash/blob/master/semver.sh
 # then linted with shellcheck and tweaked for preferences
 #!/usr/bin/env sh
-
-red='\033[0;31m'
-nc='\033[0m' # No Color
 
 semver_parse() {
   local RE M m p s result
@@ -220,90 +218,3 @@ semver_strip_to() {
       ;;
   esac
 }
-
-if [ "___semver.sh" = "___$(basename "$0")" ]; then
-  if [ "$2" = "" ]; then
-    echo "$0 <version> <command> [version]"
-    echo "Commands: cmp, eq, lt, gt, bump_major, bump_minor, bump_patch, strip_special"
-    echo ""
-    echo "cmp: compares left version against right version, return 0 if equal, 2 if left is lower than right, 1 if left is higher than right"
-    echo "eq: compares left version against right version, returns 0 if both versions are equal"
-    echo "lt: compares left version against right version, returns 0 if left version is less than right version"
-    echo "gt: compares left version against right version, returns 0 if left version is greater than than right version"
-    echo ""
-    echo "bump_to: bump to major|minor|patch"
-    echo ""
-    echo "strip_to: strip to major|minor|patch"
-    exit 3
-  fi
-
-  if [ "$2" = "cmp" ]; then
-    semver_cmp "$1" "$3"
-    RESULT=$?
-    echo $RESULT
-    exit $RESULT
-  fi
-
-  if [ "$2" = "eq" ]; then
-    semver_eq "$1" "$3"
-    RESULT=$?
-    echo $RESULT
-    exit $RESULT
-  fi
-
-  if [ "$2" = "lt" ]; then
-    semver_lt "$1" "$3"
-    RESULT=$?
-    echo $RESULT
-    exit $RESULT
-  fi
-
-  if [ "$2" = "gt" ]; then
-    semver_gt "$1" "$3"
-    RESULT=$?
-    echo $RESULT
-    exit $RESULT
-  fi
-
-  if [ "$2" = "le" ]; then
-    semver_le "$1" "$3"
-    RESULT=$?
-    echo $RESULT
-    exit $RESULT
-  fi
-
-  if [ "$2" = "ge" ]; then
-    semver_ge "$1" "$3"
-    RESULT=$?
-    echo $RESULT
-    exit $RESULT
-  fi
-
-  if [ "$2" = "bump_to" ]; then
-    semver_bump_to "$1" "$3" || exit 1
-    exit 0
-  fi
-
-  if [ "$2" = "strip_to" ]; then
-    semver_strip_to "$1" "$3" || exit 1
-    exit 0
-  fi
-
-  if [ "$2" = "parse" ]; then
-    VER=$1
-    shift
-    shift
-
-    MA=0
-    MI=0
-    PA=0
-    SP=""
-    semver_parse "$VER" MA MI PA SP
-    eval echo "export \$1=$MA\;"
-    eval echo "export \$2=$MI\;"
-    eval echo "export \$3=$PA\;"
-    eval echo "export \$4=$SP\;"
-    echo ""
-    exit 0
-  fi
-fi

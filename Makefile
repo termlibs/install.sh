@@ -7,5 +7,11 @@ build-install-all: header.sh install_all.func.sh install_all.sh
 build-test-install-all: build-install-all
 	@./dist/install_all -t
 
+set-version:
+	@echo "Enter version number: "
+	@read version; \
+	sed -i "s/# SCRIPTSH_VERSION=.*/SCRIPTSH_VERSION=$$version/" semver.sh; \
+	echo "Version set to $$version"
+
 phony: build-install-all
 	@echo "Done"
