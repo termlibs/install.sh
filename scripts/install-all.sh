@@ -10,25 +10,33 @@ with-tempdir() {
   "$@"
 }
 
+# for logging purposes, try to output what is actually being called
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  THIS="${0}"
+else
+  THIS=""
+fi
+
 # ERROR CODES
 _E_GENERIC_ERROR=1
 _E_CLI_PARSE_ERROR=11
 
 _GITHUB="https://api.github.com"
+# NOTES: jsonnet has more than one binary
 read -d '' -r _APP_CSV <<CSV
-shortname   repo           source      file_pattern                        archive_path                archive_depth
-yq          mikefarah/yq   github      yq_linux_amd64                      yq                          0
-gh          cli/cli        github      gh_VERSION_linux_amd64.tar.gz       gh_*_linux_amd64/bin/gh     2
-helm        get.helm.sh    url         helm-vVERSION-linux-amd64.tar.gz    linux-amd64/helm            1
+shortname   repo                 source      file_pattern                               archive_path                archive_depth
+yq          mikefarah/yq         github      yq_linux_amd64                             yq                          0
+gh          cli/cli              github      gh_VERSION_linux_amd64.tar.gz              gh_*_linux_amd64/bin/gh     2
+helm        get.helm.sh          url         helm-vVERSION-linux-amd64.tar.gz           linux-amd64/helm            1
+jsonnet     google/go-jsonnet    github      go-jsonnet_VERSION_Linux_x86_64.tar.gz     jsonnet                     0
 CSV
 
 
 _create_venv() {
-
+ :;
 }
 
 _get_info() {
-  trap 'set +x' RETURN
   local app shortname repo source file_pattern archive_path archive_depth
   app=$1
   while true; do
@@ -44,6 +52,45 @@ _get_info() {
   done <<< "$_APP_CSV"
   printf "error: unable to find info for app '%s'\n" "$app" >&2
   return 1
+}
+
+_is_archive() {
+  local path
+  path="${1}"
+  case "$path" in
+    *.tar|*.tar.gz|*.tgz|*.zip)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+_extract_if_archive() {
+  local path
+  path="${1}"
+  archive_path="${2}"
+  archive_depth="${3}"
+  if [ "$path" = "-" ]; then
+    data=$(cat -)
+  else
+    data=$(<"$path")
+  fi
+  case "$path" in
+    *.tar)
+      tar --strip-components="$archive_depth" -xf - -C "$archive_path" <<< "$data"
+      ;;
+    *.tar.gz|*.tgz)
+      tar --strip-components="$archive_depth" -xzf - -C "$archive_path" <<< "$data"
+      ;;
+    *.zip)
+      unzip -d "$archive_path" - <<< "$data" #  todo components i forget the syntax offhand
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 # INTERNAL
@@ -71,6 +118,45 @@ _install-yq() {
     chmod +x "$_TEMPDIR/bin/yq"
     export PATH="$_TEMPDIR/bin:$PATH" # add to the path for the duration of the run
   fi
+}
+
+_get_gh_release() {
+  local repo version asset_match_pattern vversion
+  repo=$1
+  asset_match_pattern=$2
+  version=$3
+  if [ -z "$version" ]; then
+    version="latest"
+  fi
+  if [ "$version" = "latest" ]; then
+    asset_match_pattern="${asset_match_pattern/VERSION/.*}"
+    _urlget "$_GITHUB/repos/$repo/releases/latest" | _link_from_release_by_pattern "$asset_match_pattern"
+  else
+    vversion="v${version#v}"
+    asset_match_pattern="${asset_match_pattern/VERSION/${version}}"
+    _urlget "$_GITHUB/repos/$repo/releases/tags/$vversion" | _link_from_release_by_pattern "$asset_match_pattern"
+  fi
+}
+
+_download_release() {
+  local app version download_url
+  app=$1
+  version=$2
+  read -r shortname repo source file_pattern archive_path archive_depth <<< "$(_get_info "$app")"
+  case "$source" in
+    "github")
+      download_url="$(_get_gh_release "$repo" "$file_pattern" "$version")"
+      ;;
+    "url")
+      # TODO: helm special_case_goes_here  for grabbing version
+      download_url="https://${repo}/${file_pattern/VERSION/$version}"
+      ;;
+    *)
+      echo "error: unknown source type $source" >&2
+      return 1
+      ;;
+  esac
+  _urlget "$download_url"
 }
 
 install-github() {
@@ -112,7 +198,7 @@ install-yq() {
       ;;
   esac
   if ! command -v yq &>/dev/null || [ "$force" = "true" ]; then
-    curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -o "$_common_bin/yq"
+    curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -o "$/yq"
     chmod +x "$_common_bin/yq"
   fi
 }
