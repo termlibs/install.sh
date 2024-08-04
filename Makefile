@@ -13,5 +13,9 @@ set-version:
 	sed -i "s/# SCRIPTSH_VERSION=.*/SCRIPTSH_VERSION=$$version/" semver.sh; \
 	echo "Version set to $$version"
 
+shfmt:
+	@shfmt -w -i 2 -ci -sr -ln bash "${FILE}"
+
 phony: build-install-all
 	@echo "Done"
+

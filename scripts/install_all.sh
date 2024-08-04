@@ -23,13 +23,14 @@ _E_CLI_PARSE_ERROR=11
 
 _GITHUB="https://api.github.com"
 # NOTES: jsonnet has more than one binary
-read -d '' -r _APP_CSV <<CSV
-shortname   repo                 source      file_pattern                               archive_path                archive_depth
-yq          mikefarah/yq         github      yq_linux_amd64                             yq                          0
-gh          cli/cli              github      gh_VERSION_linux_amd64.tar.gz              gh_*_linux_amd64/bin/gh     2
-helm        get.helm.sh          url         helm-vVERSION-linux-amd64.tar.gz           linux-amd64/helm            1
-jsonnet     google/go-jsonnet    github      go-jsonnet_VERSION_Linux_x86_64.tar.gz     jsonnet                     0
-CSV
+read -d '' -r _APP_MD <<MD
+| shortname | repo              | source | file_pattern                           | archive_path                | archive_depth |
+|-----------|-------------------|--------|----------------------------------------|-----------------------------|---------------|
+| yq        | mikefarah/yq      | github | yq_linux_amd64                         | yq                          | -1            |
+| gh        | cli/cli           | github | gh_VERSION_linux_amd64.tar.gz          | gh_*_linux_amd64/bin/gh     | 2             |
+| helm      | get.helm.sh       | url    | helm-vVERSION-linux-amd64.tar.gz       | linux-amd64/helm            | 1             |
+| jsonnet   | google/go-jsonnet | github | go-jsonnet_VERSION_Linux_x86_64.tar.gz | jsonnet                     | 0             |
+MD
 
 
 _create_venv() {
@@ -49,7 +50,7 @@ _get_info() {
       printf "%s %s %s %s %s %s\n" "$shortname" "$repo" "$source" "$file_pattern" "$archive_path" "$archive_depth"
       return 0
     fi
-  done <<< "$_APP_CSV"
+  done <<< "$_APP_MD"
   printf "error: unable to find info for app '%s'\n" "$app" >&2
   return 1
 }
