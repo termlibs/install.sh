@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 
 # source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
-
-
-_ERROR_SYNTAX() {
-  printf "SYNTAX ERROR: Unexpected character at position %d: '%s'\n" "$1" "$2" >&2
-  return 99
-}
+source ./libs/json_common.sh
 
 # string has 5 states, start, escape start, escape end, end, and anything else in the middle
 # ss for string state
@@ -81,47 +76,4 @@ _ss_end() {
   CHAR="${TOKEN:$IDX:1}"
   [ "$CHAR" = '"' ] || return 99 # idiot check
   printf "String end\n" >&2
-}
-
-_parse_token() {
-  # no validation, just guessing based on first letter
-  local TOKEN FIRST_CHAR
-  TOKEN="$1"
-  if [ -z "$TOKEN" ]; then
-    TOKEN="$(cat -)"
-  fi
-  FIRST_CHAR="${TOKEN:0:1}"
-  case "$FIRST_CHAR" in
-    '"')
-      printf "string"
-      _parse_string "${TOKEN}" || return 99
-      ;;
-    [[:digit:]] | '-')
-      printf "number"
-      ;;
-    "t")
-      printf "true"
-      ;;
-    "f")
-      printf "false"
-      ;;
-    "n")
-      printf "null"
-      _parse_null "${TOKEN}" || return 99
-      ;;
-    '{')
-      printf "object"
-      ;;
-    '[')
-      printf "array"
-      ;;
-    *)
-      _ERROR_SYNTAX "$GLOBAL_COUNTER" "$FIRST_CHAR" >&2
-      return 99
-      ;;
-  esac
-}
-_parse_string() {
-  # coming in, we only know that the first character is a double quote
-
 }

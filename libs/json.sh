@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 _SCRIPT_SH_VERSION=0.0.1
 # source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
-#_GET_REPO_FILE() { local _source maybe_folder maybe_url script_file filename directory;filename="${1}";directory="${2:-libs}";script_file="$(realpath "${BASH_SOURCE[0]}")";maybe_folder="$(dirname "$script_file")";maybe_url="https://raw.githubusercontent.com/adam-huganir/scripts.sh/v${_SCRIPT_SH_VERSION}/$directory/$1";if [ -f "$maybe_folder/$filename" ]; then;_source="$(cat "$maybe_folder/$filename")";elif [ -f "$filename" ]; then;_source="$(cat "$filename")";elif curl -sSLf --head "$maybe_url" > /dev/null 2>&1; then;_source="$(curl -sSLf "$maybe_url" 2> /dev/null)";else printf "error: unable to find file '%s'; " "$filename" >&2;return 1;fi; };;
-#eval "$(_GET_REPO_FILE json_common.sh)"
-eval "$(cat ./libs/json_common.sh)"
+source ./libs/json_common.sh
+source ./libs/json_string.sh
 
 GLOBAL_COUNTER=0
 CURRENT_KEY=""
@@ -14,82 +13,6 @@ _ERROR_SYNTAX() {
   printf "SYNTAX ERROR: Unexpected character at position %d: '%s'\n" "$1" "$2" >&2
   return 99
 }
-
-# string has 5 states, start, escape start, escape end, end, and anything else in the middle
-# ss for string state
-_ss() {
-  local TOKEN CHAR IDX ESCAPING
-  TOKEN="$1"
-  IDX=0
-  CHAR="${TOKEN:$IDX:1}"
-
-  # start state check (idiot check)
-  [ "$CHAR" = '"' ] || return 99
-
-  ESCAPING=false
-  IDX=$((IDX + 1))
-  while [ $IDX -lt ${#TOKEN} ]; do
-    CHAR="${TOKEN:$IDX:1}"
-    case "$CHAR" in
-      \")
-        if [ "$IDX" -ne $((${#TOKEN} - 1)) ]; then
-          return 99
-        fi
-        _ss_end "$CHAR" "$IDX" || return 99
-        ;;
-      \\)
-        IDX=$((IDX + 1))
-        CHAR="${TOKEN:$IDX:1}"
-        _ss_escape "$CHAR" "$IDX" || return 99
-        ;;
-      *)
-        _ss_middle "$TOKEN" "$IDX" || return 99
-        ;;
-    esac
-    IDX=$((IDX + 1))
-  done
-}
-
-_ss_escape() {
-  local CHAR IDX
-  CHAR="$1"
-  IDX="$2"
-  case "$CHAR" in
-    \" | \\ | / | b | f | n | r | t | u)
-      # valid  escape characters
-      return
-      ;;
-    *)
-      return 99
-      ;;
-  esac
-}
-
-_ss_middle() {
-  local TOKEN IDX CHAR
-  TOKEN="$1"
-  IDX="$2"
-  CHAR="${TOKEN:$IDX:1}"
-  case "$CHAR" in
-    \")
-      return 99
-      ;;
-    *)
-      return
-      ;;
-  esac
-
-}
-
-_ss_end() {
-  local TOKEN CHAR IDX
-  TOKEN="$1"
-  IDX="$2"
-  CHAR="${TOKEN:$IDX:1}"
-  [ "$CHAR" = '"' ] || return 99 # idiot check
-  printf "String end\n" >&2
-}
-
 _parse_token() {
   # no validation, just guessing based on first letter
   local TOKEN FIRST_CHAR
