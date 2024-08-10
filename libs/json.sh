@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
-
+_SCRIPT_SH_VERSION=0.0.1
 # source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
+#_GET_REPO_FILE() { local _source maybe_folder maybe_url script_file filename directory;filename="${1}";directory="${2:-libs}";script_file="$(realpath "${BASH_SOURCE[0]}")";maybe_folder="$(dirname "$script_file")";maybe_url="https://raw.githubusercontent.com/adam-huganir/scripts.sh/v${_SCRIPT_SH_VERSION}/$directory/$1";if [ -f "$maybe_folder/$filename" ]; then;_source="$(cat "$maybe_folder/$filename")";elif [ -f "$filename" ]; then;_source="$(cat "$filename")";elif curl -sSLf --head "$maybe_url" > /dev/null 2>&1; then;_source="$(curl -sSLf "$maybe_url" 2> /dev/null)";else printf "error: unable to find file '%s'; " "$filename" >&2;return 1;fi; };;
+#eval "$(_GET_REPO_FILE json_common.sh)"
+eval "$(cat ./libs/json_common.sh)"
 
 GLOBAL_COUNTER=0
+CURRENT_KEY=""
+CURRENT_VALUE=""
+KEY_DIVIDER=":"
 
 _ERROR_SYNTAX() {
   printf "SYNTAX ERROR: Unexpected character at position %d: '%s'\n" "$1" "$2" >&2
@@ -107,7 +113,6 @@ _parse_token() {
       printf "false"
       ;;
     "n")
-      printf "null"
       _parse_null "${TOKEN}" || return 99
       ;;
     '{')
@@ -124,9 +129,7 @@ _parse_token() {
 }
 
 _parse_null() {
-  if [ "$1" = "null" ]; then
-    printf "null"
-  else
+  if [ "$1" != "null" ]; then
     case "$1" in
       nul*)
         GLOBAL_COUNTER=$(($GLOBAL_COUNTER + 3))
@@ -142,7 +145,7 @@ _parse_null() {
 
 _parse_string() {
   # coming in, we only know that the first character is a double quote
-
+  return
 }
 
 _tknz_STRING() {
@@ -215,99 +218,81 @@ _tknz_STRING() {
   prinitf "%s" "$1"
 }
 
-declare -a _data
+#declare -a _data
+#
+#txt="$(mktemp)"
+##printf "Using temp file: %s\n" "$txt"
+#trap "rm -f $txt" RETURN
+#
 
-txt="$(mktemp)"
-#printf "Using temp file: %s\n" "$txt"
-trap "rm -f $txt" RETURN
-
-set +x
-_T="{ \"1\": 2 }"
-printf "%s is an %s\n" "$_T" "$(_parse_token "$_T")"
-_T="\"{ \\\"1\\\": 2 }\""
-printf "%s is an %s\n" "$_T" "$(_parse_token "$_T")"
-_T="1.2"
-printf "%s is an %s\n" "$_T" "$(_parse_token "$_T")"
-_T="2"
-printf "%s is an %s\n" "$_T" "$(_parse_token "$_T")"
-_T="[ \"1\", 2 ]"
-printf "%s is an %s\n" "$_T" "$(_parse_token "$_T")"
-
-_T="[ \"1\", 2 "
-printf "%s is an %s\n" "$_T" "$(_parse_token "$_T")"
-_T="null"
-printf "%s is an %s\n" "$_T" "$(_parse_token "$_T")"
-_T="nult"
-printf "%s is an %s\n" "$_T" "$(_parse_token "$_T")"
-
-cat > /dev/null << OLD
-
-_tknz_NUMBER() {
-  printf "%s" "$1"
-}
-
-_tknz_BOOL() {
-  case "$1" in
-    true) printf "0" ;;
-    false) printf "1" ;;
-    *)
-      printf "Unexpected bool: '%s'\n" "$1" >&2
-      return 99
-      ;;
-  esac
-}
-
-_tknz_NULL() {
-  if ! [ "$1" = "null" ]; then
-    printf "Unexpected null: '%s'\n" "$1" >&2
-    return 99
-  fi
-  printf "null"
-}
-
-_read_TOKEN() {
-  local TOKEN INPUT
-  INPUT="$1"
-  if [ -z "$INPUT" ]; then
-    INPUT="$(cat -)"
-  fi
-  WORD_LENGTH="${#INPUT}"
-  TOKEN_INDEX=0
-  while IFS='' read -r -n 1 TOKEN; do
-    case "$TOKEN_INDEX" in
-      0)
-        case "$TOKEN" in
-          "{")
-            printf "Object start\n"
-            IFS='' read -r ANOTHER
-            printf "Object key: %s\nEnd object key\n" "$ANOTHER"
-            ;;
-          '"')
-            printf "String start\n"
-            ;;
-          [[:digit:]])
-            printf "Number start\n"
-            ;;
-          "t" | "f")
-            printf "Bool start\n"
-            ;;
-          "n")
-            printf "Null start\n"
-            ;;
-          *)
-            printf "Unexpected start: '%s'\n" "$TOKEN" >&2
-            return 99
-            ;;
-        esac
-        ;;
-      "${WORD_LENGTH}")
-        printf "%s --- done\n" "$TOKEN"
-        ;;
-      *)
-        printf "%s" "$TOKEN"
-        ;;
-    esac
-    TOKEN_INDEX=$((TOKEN_INDEX + 1))
-  done <<< "$INPUT"
-}
-OLD
+#cat > /dev/null << OLD
+#
+#_tknz_NUMBER() {
+#  printf "%s" "$1"
+#}
+#
+#_tknz_BOOL() {
+#  case "$1" in
+#    true) printf "0" ;;
+#    false) printf "1" ;;
+#    *)
+#      printf "Unexpected bool: '%s'\n" "$1" >&2
+#      return 99
+#      ;;
+#  esac
+#}
+#
+#_tknz_NULL() {
+#  if ! [ "$1" = "null" ]; then
+#    printf "Unexpected null: '%s'\n" "$1" >&2
+#    return 99
+#  fi
+#  printf "null"
+#}
+#
+#_read_TOKEN() {
+#  local TOKEN INPUT
+#  INPUT="$1"
+#  if [ -z "$INPUT" ]; then
+#    INPUT="$(cat -)"
+#  fi
+#  WORD_LENGTH="${#INPUT}"
+#  TOKEN_INDEX=0
+#  while IFS='' read -r -n 1 TOKEN; do
+#    case "$TOKEN_INDEX" in
+#      0)
+#        case "$TOKEN" in
+#          "{")
+#            printf "Object start\n"
+#            IFS='' read -r ANOTHER
+#            printf "Object key: %s\nEnd object key\n" "$ANOTHER"
+#            ;;
+#          '"')
+#            printf "String start\n"
+#            ;;
+#          [[:digit:]])
+#            printf "Number start\n"
+#            ;;
+#          "t" | "f")
+#            printf "Bool start\n"
+#            ;;
+#          "n")
+#            printf "Null start\n"
+#            ;;
+#          *)
+#            printf "Unexpected start: '%s'\n" "$TOKEN" >&2
+#            return 99
+#            ;;
+#        esac
+#        ;;
+#      "${WORD_LENGTH}")
+#        printf "%s --- done\n" "$TOKEN"
+#        ;;
+#      *)
+#        printf "%s" "$TOKEN"
+#        ;;
+#    esac
+#    TOKEN_INDEX=$((TOKEN_INDEX + 1))
+#  done <<< "$INPUT"
+#}
+#OLD
