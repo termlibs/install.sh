@@ -14,6 +14,8 @@ shfmt=("github" "mvdan/sh" 'shfmt_${version}_${KERNEL}_${ARCH_AMD}')
 SHORT_OPTS="h"
 LONG_OPTS="help,install-dependencies,prefix:"
 
+
+
 ARGS=$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$(basename $0)" -- "$@")
 if [ $? -ne 0 ]; then
   print "Unable to parse options... ttyl"

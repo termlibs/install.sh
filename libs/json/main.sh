@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 _SCRIPT_SH_VERSION=0.0.1
 # source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
-source ./libs/json_common.sh
-source ./libs/json_string.sh
+source ./libs/json/_util.sh
+source ./libs/json/_string.sh
+source ./libs/json/_number.sh
+source ./libs/json/_bool.sh
+source ./libs/json/_null.sh
+source ./libs/json/_object.sh
+source ./libs/json/_array.sh
 
 GLOBAL_COUNTER=0
 CURRENT_KEY=""
 CURRENT_VALUE=""
 KEY_DIVIDER=":"
+
+declare -a _data
+
 
 _ERROR_SYNTAX() {
   printf "SYNTAX ERROR: Unexpected character at position %d: '%s'\n" "$1" "$2" >&2

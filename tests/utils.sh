@@ -28,19 +28,18 @@ elog() {
   if [[ "$TERM" = *"color" ]]; then
     case "$level" in
       INFO)
-        level="${_ansii_green@E}$level${_ansii_reset@E}"
+        level="${_ansii_green}$level${_ansii_reset}"
         ;;
       WARN)
-        level="${_ansii_yellow@E}$level${_ansii_reset@E}"
+        level="${_ansii_yellow}$level${_ansii_reset}"
         ;;
       ERROR)
-        level="${_ansii_red@E}$level${_ansii_reset@E}"
+        level="${_ansii_red}$level${_ansii_reset}"
         ;;
       *)
-        level="${_ansii_reset@E}$level${_ansii_reset@E}"
+        level="${_ansii_reset}$level${_ansii_reset}"
         ;;
     esac
   fi
-  prefix="$(printf "%s [%6s]: " "$(date +%H:%M:%S)" "$level")"
-  printf "%s: %s\n"  "${prefix@P}" "$*"  >&2
+  printf "%s [%6s]: %s\n" "$(date +%H:%M:%S)" "${level@P}" "$*"  >&2
 }

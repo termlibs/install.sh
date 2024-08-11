@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
-source ./libs/json_common.sh
+source ./libs/json/_util.sh
 
 # string has 5 states, start, escape start, escape end, end, and anything else in the middle
 # ss for string state

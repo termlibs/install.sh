@@ -2,7 +2,7 @@
 
 # shellcheck source=./libs/json.sh
 trap 'set +x' EXIT
-source "./libs/json.sh"
+source "./libs/json/main.sh"
 source ./tests/utils.sh
 
 assert_string_eq() {
