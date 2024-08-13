@@ -1,190 +1,245 @@
 #!/usr/bin/env bash
 
 # source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
-source ./libs/json/_util.sh
-
-# state machine for numbers
 # digit := 0-9           ╭─>────────────────╮
 #  start ─┬─┬─ 0 ────┬───┴─ . ──┬─ digit ─>┬┴┬─────────────────┬─ ╳
 #     │   │ │       ╭╯          ^          │ ├ e ╮     ╭─────<─┤
 #     ╰ - ╯ ╰ 1-9 ─┬┴─ digit >╮ ╰──────────╯ ╰ E ┤╭ + ╮│       │
 #                  ^          │                  ╰┼───┼┴ digit ╯
 #                  ╰──────────╯                   ╰ - ╯
-#   0  1      2/3        4   5      6          7    8     9     10
-
-_n_9() {
-  local CHAR="${1:0:1}"
-  local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
-  case "$CHAR" in
-    [0-9])
-      _n_9 "$REMAINDER"
-      ;;
-    *)
-      return 99
-      ;;
-  esac
-}
+#       0     1/2       3  4        5          6    7     8
 
 _n_8() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
     [0-9])
-      _n_9 "$REMAINDER"
+      value="$(
+        _n_8 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
 
 _n_7() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && return 99 #  not a valid termination state
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
     [0-9])
-      _n_9 "$REMAINDER"
-      ;;
-    + | -)
-      _n_8 "$REMAINDER"
+      value="$(
+        _n_8 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
 
 _n_6() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && return 99 #  not a valid termination state
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
     [0-9])
-      _n_6 "$REMAINDER"
+      value="$(
+        _n_8 "$REMAINDER" "$value"
+      )"
       ;;
-    e | E)
-      _n_7 "$REMAINDER"
+    + | -)
+      value="$(
+        _n_7 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
 
 _n_5() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
     [0-9])
-      _n_6 "$REMAINDER"
+      value="$(
+        _n_5 "$REMAINDER" "$value"
+      )"
+      ;;
+    e | E)
+      value="$(
+        _n_6 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
 
 _n_4() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && return 99 #  not a valid termination state
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
     [0-9])
-      _n_4 "$REMAINDER"
-      ;;
-    .)
-      _n_5 "$REMAINDER"
-      ;;
-    e | E)
-      _n_7 "$REMAINDER"
+      value="$(
+        _n_5 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
 
 _n_3() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
     [0-9])
-      _n_4 "$REMAINDER"
+      value="$(
+        _n_3 "$REMAINDER" "$value"
+      )"
       ;;
     .)
-      _n_5 "$REMAINDER"
+      value="$(
+        _n_4 "$REMAINDER" "$value"
+      )"
       ;;
     e | E)
-      _n_7 "$REMAINDER"
+      value="$(
+        _n_6 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
-
 
 _n_2() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
+    [0-9])
+      value="$(
+        _n_3 "$REMAINDER" "$value"
+      )"
+      ;;
     .)
-      _n_5 "$REMAINDER"
+      value="$(
+        _n_4 "$REMAINDER" "$value"
+      )"
       ;;
     e | E)
-      _n_7 "$REMAINDER"
+      value="$(
+        _n_6 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
 
 _n_1() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
-    0)
-      _n_2 "$REMAINDER"
+    .)
+      value="$(
+        _n_4 "$REMAINDER" "$value"
+      )"
       ;;
-    [1-9])
-      _n_3 "$REMAINDER"
+    e | E)
+      value="$(
+        _n_6 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
 
 _n_0() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  _n_init $CHAR || return # return if empty
+  [ -z "$CHAR" ] && return 99 #  not a valid termination state
+  local value="$(_n_consume "$CHAR" "$2")"
   case "$CHAR" in
-    -)
-      _n_1 "$REMAINDER"
+    0)
+      value="$(
+        _n_1 "$REMAINDER" "$value"
+      )"
       ;;
     [1-9])
-      _n_3 "$REMAINDER"
-      ;;
-    0)
-      _n_2 "$REMAINDER"
+      value="$(
+        _n_2 "$REMAINDER" "$value"
+      )"
       ;;
     *)
       return 99
       ;;
   esac
+  printf "%s\n" "$value"
 }
 
-_n_init() {
+_number() {
+  local CHAR="${1:0:1}"
+  local REMAINDER="${1:1}"
+  local value="$(_n_consume "$CHAR" "")"
+  case "$CHAR" in
+    -)
+      value="$(
+        _n_0 "$REMAINDER" "$value"
+      )"
+      ;;
+    [1-9])
+      value="$(
+        _n_2 "$REMAINDER" "$value"
+      )"
+      ;;
+    0)
+      value="$(
+        _n_1 "$REMAINDER" "$value"
+      )"
+      ;;
+    *)
+      return 99
+      ;;
+  esac
+  printf "%s\n" "$value"
+}
+
+_n_consume() {
   [ -z "$1" ] && return 1
-  CURRENT_VALUE+="$1"
   GLOBAL_COUNTER=$((GLOBAL_COUNTER + 1))
+  printf "%s" "$2$1"
 }

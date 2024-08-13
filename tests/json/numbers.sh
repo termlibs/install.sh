@@ -2,7 +2,14 @@
 export GLOBAL_COUNTER=0
 export CURRENT_VALUE=""
 
-source libs/json/_number.sh
+# shellcheck source=../../libs/json/_number.sh
+source ./libs/json/_number.sh
+
+# shellcheck source=../../libs/logging.sh
+source ./libs/logging.sh
+
+# shellcheck source=../../libs/assert.sh
+source ./libs/assert.sh
 
 for n in \
    1.2 \
@@ -14,13 +21,6 @@ for n in \
   0e4  \
   -1.44E-3 \
   ; do
-  CURRENT_VALUE=""
-#  set -x
-  _n_0 "$n"
-  if [ "$CURRENT_VALUE" = "$n" ]; then
-    printf "   %4s == %4s\n" "$CURRENT_VALUE" "$n"
-  else
-    printf "!! %4s != %4s\n" "$CURRENT_VALUE" "$n"
-  fi
+  assert_string_eq "$(_number "$n")" "$n"
 done
 

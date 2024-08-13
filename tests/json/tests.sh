@@ -30,39 +30,38 @@ assert_error() {
 }
 
 log_test() {
-  printf "Test %d: %s%s%s on %s%s%s\n" "$((test_idx++))" \
-    "${_ansii_bold@P}" "$current_fn" "${_ansii_reset@P}" \
-    "${_ansii_yellow@P}" "$_T" "${_ansii_reset@P}"
+
+  elog -l INFO "Running test $((test_idx++)): ${_T}"
+
 }
 
 set +x
 set +e
 trap 'set +xe' EXIT
 current_fn="_parse_token"
-test_idx=0
 {
   _T="{ \"1\": 2 }"
-  elog -l INFO "$(log_test)"
+  log_test
   assert_string_eq "$(_parse_token "$_T")" "object"
   _T="\"{ \\\"1\\\": 2 }\""
-  elog -l INFO "$(log_test)"
+  log_test
   assert_string_eq "$(_parse_token "$_T")" "string"
   _T="1.2"
-  elog -l INFO "$(log_test)"
+  log_test
   assert_string_eq "$(_parse_token "$_T")" "number"
   _T="2"
-  elog -l INFO "$(log_test)"
+  log_test
   assert_string_eq "$(_parse_token "$_T")" "number"
   _T="[ \"1\", 2 ]"
-  elog -l INFO "$(log_test)"
+  log_test
   assert_string_eq "$(_parse_token "$_T")" "array"
   _T="[ \"1\", 2 "
-  elog -l INFO "$(log_test)"
+  log_test
   assert_error _parse_token "$_T"
   _T="null"
-  elog -l INFO "$(log_test)"
+  log_test
   assert_string_eq "$(_parse_token "$_T")" "null"
   _T="nult"
-  elog -l INFO "$(log_test)"
+  log_test
   assert_error _parse_token "$_T"
 }

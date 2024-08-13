@@ -1,79 +1,124 @@
 #!/usr/bin/env bash
 
-# source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
+# shellcheck source=./_util.sh
 source ./libs/json/_util.sh
 
-# string has 5 states, start, escape start, escape end, end, and anything else in the middle
-# ss for string state
-_ss() {
-  local TOKEN CHAR IDX ESCAPING
-  TOKEN="$1"
-  IDX=0
-  CHAR="${TOKEN:$IDX:1}"
-
-  # start state check (idiot check)
-  [ "$CHAR" = '"' ] || return 99
-
-  ESCAPING=false
-  IDX=$((IDX + 1))
-  while [ $IDX -lt ${#TOKEN} ]; do
-    CHAR="${TOKEN:$IDX:1}"
+# source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
+#
+#    valid_char  = any char except " or \
+#    4dx = 4 digit hex for UTF-32
+#               (?:)  0     1/2
+#  ┌─────┐                                         x x
+#  │start┼────► " ─────────────────────────► " ───► x
+#  └─────┘      │ ┌───────────────────────┐  │     x x
+#               │ ▼                       ▲  ▲
+#               ╰─┴─┬────► valid_char ──┬─┴──╯
+#                   ▼                   ▲
+#                   ╰─ \ ─┬─ " ──────┬──╯
+#                         ▼          ▲
+#                         ├─ \ ───►──┤
+#                         ├─ / ───►──┤
+#                         ├─ b ───►──┤
+#                         ├─ f ───►──┤
+#                         ├─ n ───►──┤
+#                         ├─ r ───►──┤
+#                         ├─ t ───►──┼
+#                         ╰─ u 4dx ─►╯
+#                              2.5^
+_s_2_5() {
+  # our restrictions here are my interpretation of json spec
+  # which is case is insensitive and any combination of 31 bits is ok
+  # so long as it is valid hex
+  local REMAINDER CHAR value
+  TO_PARSE="${1}"
+  value="${2}"
+  for i in {1..4}; do
+    CHAR="${TO_PARSE:0:1}"
+    REMAINDER="${TO_PARSE:1}"
+    value="$(_s_consume "$CHAR" "$value")"
+    TO_PARSE="$REMAINDER"
     case "$CHAR" in
-      \")
-        if [ "$IDX" -ne $((${#TOKEN} - 1)) ]; then
-          return 99
-        fi
-        _ss_end "$CHAR" "$IDX" || return 99
-        ;;
-      \\)
-        IDX=$((IDX + 1))
-        CHAR="${TOKEN:$IDX:1}"
-        _ss_escape "$CHAR" "$IDX" || return 99
-        ;;
+      [0-9a-fA-F]) ;;
       *)
-        _ss_middle "$TOKEN" "$IDX" || return 99
+        return 99
         ;;
     esac
-    IDX=$((IDX + 1))
   done
+  value="$(_s_2 "$REMAINDER" "$value")"
+  printf "%s" "$value"
 }
 
-_ss_escape() {
-  local CHAR IDX
-  CHAR="$1"
-  IDX="$2"
-  case "$CHAR" in
-    \" | \\ | / | b | f | n | r | t | u)
-      # valid  escape characters
-      return
-      ;;
-    *)
-      return 99
-      ;;
-  esac
+_s_2() {
+  _s_1 "$@"
 }
 
-_ss_middle() {
-  local TOKEN IDX CHAR
-  TOKEN="$1"
-  IDX="$2"
-  CHAR="${TOKEN:$IDX:1}"
+_s_1() {
+  local CHAR="${1:0:1}"
+  local REMAINDER="${1:1}"
+  local value="$(_s_consume "$CHAR" "$2")"
   case "$CHAR" in
     \")
-      return 99
+      value="${value%\"}"
+      ;;
+    \\)
+      value="$(
+      _s_0 "$REMAINDER" "$value"
+      )"
       ;;
     *)
-      return
+      value="$(
+      _s_1 "$REMAINDER" "$value"
+      )"
       ;;
   esac
-
+  printf "%s" "$value"
 }
 
-_ss_end() {
-  local TOKEN CHAR IDX
-  TOKEN="$1"
-  IDX="$2"
-  CHAR="${TOKEN:$IDX:1}"
-  [ "$CHAR" = '"' ] || return 99 # idiot check
-  printf "String end\n" >&2
+_s_0() {
+  local CHAR="${1:0:1}"
+  local REMAINDER="${1:1}"
+  local value="$(_s_consume "$CHAR" "$2")"
+  case "$CHAR" in
+    \" | \\ | \/ | b | f | n | r | t | 8)
+      value="$(
+        _s_2 "$REMAINDER" "$value"
+      )"
+      ;;
+    u)
+      value="$(
+        _s_2_5 "$REMAINDER" "$value"
+      )"
+      ;;
+    *)
+      return 99
+      ;;
+  esac
+  printf "%s" "$value"
+}
+
+_string() {
+  # quote has been recognized but not stripped yet
+  local CHAR="${1:1:1}" # skip the quote
+  local REMAINDER="${1:2}"
+  local value=""
+  [ "$CHAR" = '"' ] && [ -z "$REMAINDER" ] && return 0 # empty string
+  case "$CHAR" in                                      # we are at the first char after the quote
+    \\)
+      value="$(
+        _s_0 "$CHAR$REMAINDER" "$value"
+      )"
+      ;;
+    *)
+      value="$(
+        _s_1 "$CHAR$REMAINDER" "$value"
+      )"
+      ;;
+  esac
+  printf "%s\n" "$value"
+}
+
+_s_consume() {
+  [ -z "$1" ] && return 1
+  GLOBAL_COUNTER=$((GLOBAL_COUNTER + 1))
+  printf "%s" "$2$1"
 }

@@ -12,6 +12,10 @@ source ./libs/json/_array.sh
 GLOBAL_COUNTER=0
 CURRENT_KEY=""
 CURRENT_VALUE=""
+ROOT_TYPE=""
+declare -A _DATA_OBJECT
+declare -a _DATA_ARRAY
+declare -a _DATA_PRIMITIVE
 KEY_DIVIDER=":"
 
 declare -a _data
