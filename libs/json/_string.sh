@@ -44,7 +44,7 @@ _s_2_5() {
         ;;
     esac
   done
-  value="$(_s_2 "$REMAINDER" "$value")"
+  value="$(_s_2 "$REMAINDER" "$value")" || return "$?"
   printf "%s" "$value"
 }
 
@@ -62,12 +62,12 @@ _s_1() {
       ;;
     \\)
       value="$(
-      _s_0 "$REMAINDER" "$value"
+      _s_0 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
       value="$(
-      _s_1 "$REMAINDER" "$value"
+      _s_1 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
   esac
@@ -81,12 +81,12 @@ _s_0() {
   case "$CHAR" in
     \" | \\ | \/ | b | f | n | r | t | 8)
       value="$(
-        _s_2 "$REMAINDER" "$value"
+        _s_2 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     u)
       value="$(
-        _s_2_5 "$REMAINDER" "$value"
+        _s_2_5 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -105,12 +105,12 @@ _string() {
   case "$CHAR" in                                      # we are at the first char after the quote
     \\)
       value="$(
-        _s_0 "$CHAR$REMAINDER" "$value"
+        _s_0 "$CHAR$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
       value="$(
-        _s_1 "$CHAR$REMAINDER" "$value"
+        _s_1 "$CHAR$REMAINDER" "$value" || return "$?"
       )"
       ;;
   esac

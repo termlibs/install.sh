@@ -24,3 +24,4 @@ for n in \
   assert_string_eq "$(_number "$n")" "$n"
 done
 
+assert_error _number "1.2.3"

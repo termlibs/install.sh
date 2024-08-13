@@ -17,7 +17,7 @@ _n_8() {
   case "$CHAR" in
     [0-9])
       value="$(
-        _n_8 "$REMAINDER" "$value"
+        _n_8 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -35,7 +35,7 @@ _n_7() {
   case "$CHAR" in
     [0-9])
       value="$(
-        _n_8 "$REMAINDER" "$value"
+        _n_8 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -53,12 +53,12 @@ _n_6() {
   case "$CHAR" in
     [0-9])
       value="$(
-        _n_8 "$REMAINDER" "$value"
+        _n_8 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     + | -)
       value="$(
-        _n_7 "$REMAINDER" "$value"
+        _n_7 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -76,12 +76,12 @@ _n_5() {
   case "$CHAR" in
     [0-9])
       value="$(
-        _n_5 "$REMAINDER" "$value"
+        _n_5 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     e | E)
       value="$(
-        _n_6 "$REMAINDER" "$value"
+        _n_6 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -99,7 +99,7 @@ _n_4() {
   case "$CHAR" in
     [0-9])
       value="$(
-        _n_5 "$REMAINDER" "$value"
+        _n_5 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -117,17 +117,17 @@ _n_3() {
   case "$CHAR" in
     [0-9])
       value="$(
-        _n_3 "$REMAINDER" "$value"
+        _n_3 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     .)
       value="$(
-        _n_4 "$REMAINDER" "$value"
+        _n_4 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     e | E)
       value="$(
-        _n_6 "$REMAINDER" "$value"
+        _n_6 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -145,17 +145,17 @@ _n_2() {
   case "$CHAR" in
     [0-9])
       value="$(
-        _n_3 "$REMAINDER" "$value"
+        _n_3 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     .)
       value="$(
-        _n_4 "$REMAINDER" "$value"
+        _n_4 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     e | E)
       value="$(
-        _n_6 "$REMAINDER" "$value"
+        _n_6 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -173,12 +173,12 @@ _n_1() {
   case "$CHAR" in
     .)
       value="$(
-        _n_4 "$REMAINDER" "$value"
+        _n_4 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     e | E)
       value="$(
-        _n_6 "$REMAINDER" "$value"
+        _n_6 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -196,12 +196,12 @@ _n_0() {
   case "$CHAR" in
     0)
       value="$(
-        _n_1 "$REMAINDER" "$value"
+        _n_1 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     [1-9])
       value="$(
-        _n_2 "$REMAINDER" "$value"
+        _n_2 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
@@ -212,23 +212,24 @@ _n_0() {
 }
 
 _number() {
+  set -x
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   local value="$(_n_consume "$CHAR" "")"
   case "$CHAR" in
     -)
       value="$(
-        _n_0 "$REMAINDER" "$value"
+        _n_0 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     [1-9])
       value="$(
-        _n_2 "$REMAINDER" "$value"
+        _n_2 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     0)
       value="$(
-        _n_1 "$REMAINDER" "$value"
+        _n_1 "$REMAINDER" "$value" || return "$?"
       )"
       ;;
     *)
