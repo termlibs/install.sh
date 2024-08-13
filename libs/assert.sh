@@ -30,13 +30,11 @@ assert_error() {
         ;;
     esac
   done
-  local fn
+  local fn _rc
   fn="$1"
   shift
-  set -x
-  $fn "$@" > /dev/null 2>&1
+  $fn "$@" #> /dev/null 2>&1
   _rc="$?"
-  set +x
   if [ "$_rc" -eq 0 ]; then
     if [ -n "$code" ]; then
       elog -l ERROR "assertion failed in $fn: expected error code $code but got none"
@@ -46,7 +44,6 @@ assert_error() {
     fi
     return 1
   else
-    _rc="$?"
     if [ -n "$code" ]; then
       if [ "$code" != "$_rc" ]; then
         elog -l ERROR "assertion failed in $fn: expected error code $code but got $_rc"

@@ -18,3 +18,10 @@ for s in \
   assert_string_eq "$(_string "$s")" "$_s"
 done
 
+for s in \
+  '" this is \z bad escape sequence"' \
+  '"\uF3MN is not unicode"' \
+  '"This is a string that doesnt terminate' \
+  '4' ; do
+  assert_error --code 99 _string "$s"
+done
