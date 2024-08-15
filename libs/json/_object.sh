@@ -42,24 +42,25 @@ _o_2() {
 _o_0() {
   # parse the key
   local key_value
-  key_value="$(_string "$1")" || return "$?"
-  _KEY_PATH+=("$key_value")
-  local TRIMMED="${1:$((${#key_value} + 2))}"  # get to the next char after the quote
+  key_value="$(_string "$2")" || return "$?"
+  local current_path="${1}${KEY_DIVIDER}${key_value}"
+  local TRIMMED="${2:$((${#key_value} + 2))}"  # get to the next char after the quote
   TRIMMED="$(slurp_whitespace "$TRIMMED")" # remove whitespace
   # next character _must be a colon
   [ "${TRIMMED:0:1}" = ':' ] || return 99
-  value="$(parse_json "${TRIMMED:1}")" || return "$?"
-  _DATA_OBJECT["${_KEY_PATH[*]}"]="$value"
+  value="$(parse_json "$current_path" "${TRIMMED:1}")" || return "$?"
+  save_data "$current_path" "$value"
 }
 
 _object() {
-  local TRIMMED="$(slurp_whitespace "${1:1}")" # remove bracket and slurp whitespace
+  local current_path="$1"
+  local TRIMMED="$(slurp_whitespace "${2:1}")" # remove bracket and slurp whitespace
   local CHAR="${TRIMMED:0:1}"
   local REMAINDER="${TRIMMED:1}"
   [ "$CHAR" = '}' ] && [ -z "$REMAINDER" ] && return 0 # empty object
   case "$CHAR" in # we are at the first char after the quote
   \")
-    _o_0 "$TRIMMED" || return "$?"
+    _o_0 "$current_path" "$TRIMMED" || return "$?"
     ;;
   *)
     return 99

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 # shellcheck source=../../libs/json/_string.sh
 source ./libs/json/_string.sh

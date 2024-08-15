@@ -15,7 +15,8 @@ _SCRIPT_SH_VERSION=0.0.1
 
 parse_json() {
   set -x
-  local TRIMMED="$(slurp_whitespace "$1")"
+  local current_path="$1"
+  local TRIMMED="$(slurp_whitespace "$2")"
   local CHAR="${TRIMMED:0:1}"
   local RAW_INPUT="$TRIMMED"
   local value=""
@@ -36,10 +37,10 @@ parse_json() {
       _null "$RAW_INPUT" || return "$?"
       ;;
     '{')
-      _object "$RAW_INPUT" || return "$?"
+      _object "$current_path" "$RAW_INPUT" || return "$?"
       ;;
     '[')
-      _array "$RAW_INPUT" || return "$?"
+      _array "$current_path" "$RAW_INPUT" || return "$?"
       ;;
     *)
       _ERROR_SYNTAX "$GLOBAL_COUNTER" "$FIRST_CHAR" >&2

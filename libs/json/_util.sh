@@ -5,6 +5,12 @@ _ERROR_SYNTAX() {
   return 99
 }
 
+save_data() {
+  local path="$1"
+  local value="$2"
+  printf "%s=%s\n" "$path" "${value@P}" >> $"__DATAFILE__"
+}
+
 slurp_whitespace() {
   local CHAR="${1:0:1}"
   local raw_input="$1"

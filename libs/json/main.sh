@@ -2,6 +2,9 @@
 _SCRIPT_SH_VERSION=0.0.1
 # source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
 
+export __DATAFILE__="$(mktemp -t json_basher.XXXXXXXXXX)"
+trap 'rm -f "$__DATAFILE__"' EXIT
+
 # shellcheck source=./_util.sh
 source ./libs/json/_util.sh
 # shellcheck source=./_string.sh
@@ -67,10 +70,11 @@ enter() {
       exit 1
       ;;
   esac
-  parse_json "$raw_data"
+  local current_path=""
+  parse_json "$current_path" "$raw_data"
 }
 
-enter "$@"
+#enter "$@"
 
-printf "KEY_PATH: %s\n" "${_KEY_PATH[*]}"
-printf "%s\n" "${_DATA_OBJECT[*]}"
+#printf "KEY_PATH: %s\n" "${_KEY_PATH[*]}"
+#printf "%s\n" "${_DATA_OBJECT[*]}"
