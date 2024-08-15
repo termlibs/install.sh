@@ -37,7 +37,7 @@ _s_2_5() {
   for i in {1..4}; do
     CHAR="${TO_PARSE:0:1}"
     REMAINDER="${TO_PARSE:1}"
-    value="$(_s_consume "$CHAR" "$value")"
+    value="${value}${CHAR}"
     TO_PARSE="$REMAINDER"
     case "$CHAR" in
     [0-9a-fA-F]) ;;
@@ -58,7 +58,7 @@ _s_1() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && return 99 #  not a valid termination state
-  local value="$(_s_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
   \")
     value="${value%\"}"
@@ -80,7 +80,7 @@ _s_1() {
 _s_0() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  local value="$(_s_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
   \" | \\ | \/ | b | f | n | r | t | 8)
     value="$(
@@ -104,7 +104,7 @@ _string() {
   local CHAR="${1:1:1}" # skip the quote
   local REMAINDER="${1:2}"
   [ "$CHAR" = '"' ] && [ -z "$REMAINDER" ] && return 0 # empty string
-  local value="$(_s_consume "$CHAR" "")"
+  local value="$CHAR"
   case "$CHAR" in                                      # we are at the first char after the quote
   \\)
     value="$(
@@ -118,10 +118,4 @@ _string() {
     ;;
   esac
   printf "%s\n" "$value"
-}
-
-_s_consume() {
-  [ -z "$1" ] && return 1
-  GLOBAL_COUNTER=$((GLOBAL_COUNTER + 1))
-  printf "%s" "$2$1"
 }

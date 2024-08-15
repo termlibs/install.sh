@@ -13,7 +13,7 @@ _n_8() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     [0-9])
       value="$(
@@ -31,7 +31,7 @@ _n_7() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && return 99 #  not a valid termination state
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     [0-9])
       value="$(
@@ -49,7 +49,7 @@ _n_6() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && return 99 #  not a valid termination state
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     [0-9])
       value="$(
@@ -72,7 +72,7 @@ _n_5() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     [0-9])
       value="$(
@@ -95,7 +95,7 @@ _n_4() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && return 99 #  not a valid termination state
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     [0-9])
       value="$(
@@ -113,7 +113,7 @@ _n_3() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     [0-9])
       value="$(
@@ -141,7 +141,7 @@ _n_2() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     [0-9])
       value="$(
@@ -169,7 +169,7 @@ _n_1() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && printf "%s\n" "$2" && return 0
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     .)
       value="$(
@@ -192,7 +192,7 @@ _n_0() {
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && return 99 #  not a valid termination state
-  local value="$(_n_consume "$CHAR" "$2")"
+  local value="${2}${CHAR}"
   case "$CHAR" in
     0)
       value="$(
@@ -215,7 +215,8 @@ _number() {
 #  set -x
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
-  local value="$(_n_consume "$CHAR" "")"
+  local value="$CHAR"
+
   case "$CHAR" in
     -)
       value="$(
@@ -237,10 +238,4 @@ _number() {
       ;;
   esac
   printf "%s\n" "$value"
-}
-
-_n_consume() {
-  [ -z "$1" ] && return 1
-  GLOBAL_COUNTER=$((GLOBAL_COUNTER + 1))
-  printf "%s" "$2$1"
 }
