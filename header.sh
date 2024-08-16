@@ -9,7 +9,8 @@ _get_machine_info() {
 }
 _get_machine_info
 
-TSV=$(cat <<EOF
+TSV=$(
+      cat << EOF
 name	location	template	source
 yq	mikefarah/yq	yq_${KERNEL}_${ARCH_AMD}	github
 argocd	cli/cli	gh_\${ersion}_${KERNEL}_${ARCH_x64}.tar.gz	github

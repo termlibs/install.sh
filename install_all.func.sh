@@ -16,8 +16,6 @@ idx() {
 
 # get the current shell
 
-
-
 assert_executable() { chmod +x "$1"; }
 simple_install() {
   local src dest
@@ -157,7 +155,7 @@ install_this() {
   location="$(app_lookup "$to_install" "location")"
   if [[ -z "$location" ]]; then
     to_install="$(app_lookup_name_from_repo "$to_install")"
-    location="$(app_lookup "$to_install" "location")"    
+    location="$(app_lookup "$to_install" "location")"
   fi
   if [[ -z "$location" ]]; then
     printf "Could not find %s\n" "$to_install"
@@ -165,7 +163,7 @@ install_this() {
   fi
   src="$(app_lookup "$to_install" "source")"
   template="$(app_lookup "$to_install" "template")"
-  
+
   version="${4:-latest}"
   case "$src" in
     github)

@@ -27,95 +27,110 @@ source ./libs/json/_util.sh
 #                         ├─ t ───►──┼
 #                         ╰─ u 4dx ─►╯
 #                              2.5^
+
+# args: (to_process string, partial value string)
+# returns (value: string, next: string)
 _s_2_5() {
   # our restrictions here are my interpretation of json spec
   # which is case is insensitive and any combination of 31 bits is ok
   # so long as it is valid hex
-  local REMAINDER CHAR value
-  TO_PARSE="${1}"
+  local value next R
+  local to_process REMAINDER CHAR value
+  to_process="${1}"
   value="${2}"
   for i in {1..4}; do
-    CHAR="${TO_PARSE:0:1}"
-    REMAINDER="${TO_PARSE:1}"
+    CHAR="${to_process:0:1}"
+    REMAINDER="${to_process:1}"
     value="${value}${CHAR}"
-    TO_PARSE="$REMAINDER"
+    to_process="$REMAINDER"
     case "$CHAR" in
-    [0-9a-fA-F]) ;;
-    *)
-      return 99
-      ;;
+      [0-9a-fA-F]) ;;
+      *)
+        return 99
+        ;;
     esac
   done
-  value="$(_s_2 "$REMAINDER" "$value")" || return "$?"
-  printf "%s" "$value"
+  eval R="$(_s_2 "$REMAINDER" "$value")" || return "$?"
+  eval value="${R[0]}"
+  eval next="${R[1]}"
+  printf "( %s %s )" "${value@Q}" "${next@Q}"
 }
 
 _s_2() {
   _s_1 "$@"
 }
 
+# args: (to_process string, partial value string)
+# returns (value: string, next: string)
 _s_1() {
+  local value next R
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   [ -z "$CHAR" ] && return 99 #  not a valid termination state
   local value="${2}${CHAR}"
   case "$CHAR" in
-  \")
-    value="${value%\"}"
-    ;;
-  \\)
-    value="$(
-      _s_0 "$REMAINDER" "$value"
-    )" || return "$?"
-    ;;
-  *)
-    value="$(
-      _s_1 "$REMAINDER" "$value"
-    )" || return "$?"
-    ;;
+    \")
+      value="${value%\"}"
+      next="${REMAINDER}"
+      ;;
+    \\)
+      eval R="$(_s_0 "$REMAINDER" "$value")" || return "$?"
+      value="${R[0]}"
+      next="${R[1]}"
+      ;;
+    *)
+      eval R="$(_s_1 "$REMAINDER" "$value")" || return "$?"
+      value="${R[0]}"
+      next="${R[1]}"
+      ;;
   esac
-  printf "%s" "$value"
+  printf "( %s %s )" "${value@Q}" "${next@Q}"
 }
 
+# args: (to_process string, partial value string)
+# returns (value: string, next: string)
 _s_0() {
+  local value next R
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   local value="${2}${CHAR}"
   case "$CHAR" in
-  \" | \\ | \/ | b | f | n | r | t | 8)
-    value="$(
-      _s_2 "$REMAINDER" "$value"
-    )" || return "$?"
-    ;;
-  u)
-    value="$(
-      _s_2_5 "$REMAINDER" "$value"
-    )" || return "$?"
-    ;;
-  *)
-    return 99
-    ;;
+    \" | \\ | \/ | b | f | n | r | t | 8)
+      eval R="$(_s_2 "$REMAINDER" "$value")" || return "$?"
+      value="${R[0]}"
+      next="${R[1]}"
+      ;;
+    u)
+      eval R="$(_s_2_5 "$REMAINDER" "$value")" || return "$?"
+      value="${R[0]}"
+      next="${R[1]}"
+      ;;
+    *)
+      return 99
+      ;;
   esac
-  printf "%s" "$value"
+  printf "( %s %s )" "${value@Q}" "${next@Q}"
 }
 
+# args: (raw string)
+# returns (value: string, next: string)
 _string() {
   # quote has been recognized but not stripped yet
+  local value next R
   local CHAR="${1:1:1}" # skip the quote
   local REMAINDER="${1:2}"
   [ "$CHAR" = '"' ] && [ -z "$REMAINDER" ] && return 0 # empty string
-  local value="$CHAR"
   case "$CHAR" in                                      # we are at the first char after the quote
-  \\)
-    value="$(
-      _s_0 "$REMAINDER" "$value"
-    )" || return "$?"
-    ;;
-  *)
-    value="$(
-      _s_1 "$REMAINDER" "$value"
-    )" || return "$?"
-    ;;
+    \\)
+      eval R="$(_s_0 "$REMAINDER" "$CHAR")" || return "$?"
+      value="${R[0]}"
+      next="${R[1]}"
+      ;;
+    *)
+      eval R="$(_s_1 "$REMAINDER" "$CHAR")" || return "$?"
+      value="${R[0]}"
+      next="${R[1]}"
+      ;;
   esac
-  printf "%s\n" "$value"
+  printf '( %s %s )' "${value@Q}" "${next@Q}"
 }

@@ -212,7 +212,7 @@ _n_0() {
 }
 
 _number() {
-#  set -x
+  #  set -x
   local CHAR="${1:0:1}"
   local REMAINDER="${1:1}"
   local value="$CHAR"

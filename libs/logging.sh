@@ -20,11 +20,11 @@ elog() {
   force=false
   while true; do
     case "$1" in
-      -l|--level)
+      -l | --level)
         level="$2"
         shift 2
         ;;
-      -f|--force)
+      -f | --force)
         force=true
         shift
         ;;
@@ -43,7 +43,7 @@ elog() {
 
   ws=$((5 - ${#level}))
   pad_level="$level"
-  for ((i=0; i<ws; i++)); do
+  for ((i = 0; i < ws; i++)); do
     pad_level+=" "
   done
   ll="${LOGLEVEL:-INFO}"

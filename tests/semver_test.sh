@@ -5,7 +5,6 @@
 # then linted with shellcheck and tweaked for preferences
 source "$(dirname "${BASH_SOURCE[0]}")/semver.sh"
 
-
 A=v1.3.2
 B=v2.3.2
 C=v1.4.2

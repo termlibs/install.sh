@@ -8,7 +8,7 @@ _ERROR_SYNTAX() {
 save_data() {
   local path="$1"
   local value="$2"
-  printf "%s=%s\n" "$path" "${value@P}" >> $"__DATAFILE__"
+  printf "%s=%s\n" "$path" "${value@P}" >> "$__DATAFILE__"
 }
 
 slurp_whitespace() {
@@ -19,8 +19,7 @@ slurp_whitespace() {
     [[:space:]])
       first_char="$(_next_token_index "$raw_input")"
       ;;
-    *)
-      ;;
+    *) ;;
   esac
 
   printf "%s" "${raw_input:$first_char}"
@@ -28,6 +27,6 @@ slurp_whitespace() {
 
 _next_token_index() {
   local trim_plus_1="${1#*[![:space:]]}"
-  local start="$(( ${#1} - ${#trim_plus_1} - 1 ))"
+  local start="$((${#1} - ${#trim_plus_1} - 1))"
   printf "%d" "$start"
 }

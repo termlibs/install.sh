@@ -23,7 +23,7 @@ _E_CLI_PARSE_ERROR=11
 
 _GITHUB="https://api.github.com"
 # NOTES: jsonnet has more than one binary
-read -d '' -r _APP_MD <<MD
+read -d '' -r _APP_MD << MD
 | shortname | repo              | source | file_pattern                           | archive_path                | archive_depth |
 |-----------|-------------------|--------|----------------------------------------|-----------------------------|---------------|
 | yq        | mikefarah/yq      | github | yq_linux_amd64                         | yq                          | -1            |
@@ -32,9 +32,8 @@ read -d '' -r _APP_MD <<MD
 | jsonnet   | google/go-jsonnet | github | go-jsonnet_VERSION_Linux_x86_64.tar.gz | jsonnet                     | 0             |
 MD
 
-
 _create_venv() {
- :;
+  :
 }
 
 _get_info() {
@@ -59,7 +58,7 @@ _is_archive() {
   local path
   path="${1}"
   case "$path" in
-    *.tar|*.tar.gz|*.tgz|*.zip)
+    *.tar | *.tar.gz | *.tgz | *.zip)
       return 0
       ;;
     *)
@@ -76,13 +75,13 @@ _extract_if_archive() {
   if [ "$path" = "-" ]; then
     data=$(cat -)
   else
-    data=$(<"$path")
+    data=$(< "$path")
   fi
   case "$path" in
     *.tar)
       tar --strip-components="$archive_depth" -xf - -C "$archive_path" <<< "$data"
       ;;
-    *.tar.gz|*.tgz)
+    *.tar.gz | *.tgz)
       tar --strip-components="$archive_depth" -xzf - -C "$archive_path" <<< "$data"
       ;;
     *.zip)
@@ -96,10 +95,10 @@ _extract_if_archive() {
 
 # INTERNAL
 _urlget() {
-  if command -v curl &>/dev/null; then
-    curl -fsSLo - "$1" 2>/dev/null
-  elif command -v wget &>/dev/null; then
-    wget -qO- "$1" 2>/dev/null
+  if command -v curl &> /dev/null; then
+    curl -fsSLo - "$1" 2> /dev/null
+  elif command -v wget &> /dev/null; then
+    wget -qO- "$1" 2> /dev/null
   else
     echo "error: neither curl nor wget found, unable to access the web" >&2
     return 1
@@ -112,7 +111,7 @@ _link_from_release_by_pattern() {
 
 # we have our own special function here since we use it in the other install functions
 _install-yq() {
-  if ! command -v yq &>/dev/null || [ "$force" = "true" ]; then
+  if ! command -v yq &> /dev/null || [ "$force" = "true" ]; then
     # install to temp since the user hasn't explicitly asked to install this
     with-tempdir mkdir -p "$_TEMPDIR/bin"
     _urlget "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" > "$_TEMPDIR/bin/yq"
@@ -169,7 +168,7 @@ install-yq() {
   set -x
   # app spec
   local opts PREFIX VERSION force
-  opts="$(getopt -o "fv:p:" --long "force,version:,prefix:" -n "${FUNCNAME[0]}" -- "$@" )"
+  opts="$(getopt -o "fv:p:" --long "force,version:,prefix:" -n "${FUNCNAME[0]}" -- "$@")"
   # shellcheck disable=SC2181
   if [ $? -ne 0 ]; then
     return "$_E_CLI_PARSE_ERROR"
@@ -177,11 +176,11 @@ install-yq() {
 
   eval set -- "$opts"
   case "$1" in
-    --prefix|-p)
+    --prefix | -p)
       PREFIX="$2"
       shift 2
       ;;
-    --version|-v)
+    --version | -v)
       VERSION="$2"
       shift 2
       ;;
@@ -198,7 +197,7 @@ install-yq() {
       return "$_E_CLI_PARSE_ERROR"
       ;;
   esac
-  if ! command -v yq &>/dev/null || [ "$force" = "true" ]; then
+  if ! command -v yq &> /dev/null || [ "$force" = "true" ]; then
     curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -o "$/yq"
     chmod +x "$_common_bin/yq"
   fi

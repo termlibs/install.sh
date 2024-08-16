@@ -23,26 +23,29 @@ source ./libs/json/_root.sh
 export GLOBAL_COUNTER=0
 export _KEY_PATH=()
 declare -A _DATA_OBJECT
-export KEY_DIVIDER=":"
+export KEY_DIVIDER="${KEY_DIVIDER:-.}"
 
 enter() {
-  set -x
+  #  set -x
   local opts raw_data
   local raw_path="."
   opts="$(getopt -o "" --long "" -n json_basher -- "$@")"
-  [ "$?" -eq 0 ] || { echo error; return 1; }
+  [ "$?" -eq 0 ] || {
+                      echo error
+                                  return 1
+  }
   eval set -- "$opts"
   #  any option parsing will go here
   while true; do
     case "$1" in
-    --)
-      shift
-      break
-      ;;
-    -*|--*)
-      printf "'%s' is not a valid flag\n" "$1" >&2
-      return 1
-      ;;
+      --)
+        shift
+        break
+        ;;
+      -* | --*)
+        printf "'%s' is not a valid flag\n" "$1" >&2
+        return 1
+        ;;
     esac
     sleep 0.5
   done

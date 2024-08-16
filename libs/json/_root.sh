@@ -10,47 +10,61 @@ _SCRIPT_SH_VERSION=0.0.1
 #         ├───► false ──►──┤
 #         ╰───► null  ──►──╯
 
-
-
-
 parse_json() {
-  set -x
+  #  set -x
   local current_path="$1"
   local TRIMMED="$(slurp_whitespace "$2")"
   local CHAR="${TRIMMED:0:1}"
   local RAW_INPUT="$TRIMMED"
   local value=""
+  local save_value="false"
   case "$CHAR" in
     '"')
-      _string "$RAW_INPUT" || return "$?"
+      R="$(_string "$RAW_INPUT")" || return "$?"
+      eval value=${R[0]}
+      eval next=${R[1]}
+      save_value="true"
       ;;
     [[:digit:]] | '-')
-      _number "$RAW_INPUT" || return "$?"
+      R="$(_number "$RAW_INPUT")" || return "$?"
+      eval value=${R[0]}
+      eval next=${R[1]}
+      save_value="true"
       ;;
     "t")
-      _true "$RAW_INPUT" || return "$?"
+      R="$(_true "$RAW_INPUT")" || return "$?"
+      eval value=${R[0]}
+      eval next=${R[1]}
+      save_value="true"
       ;;
     "f")
-      _false "$RAW_INPUT" || return "$?"
+      R="$(_false "$RAW_INPUT")" || return "$?"
+      eval value=${R[0]}
+      eval next=${R[1]}
+      save_value="true"
       ;;
     "n")
-      _null "$RAW_INPUT" || return "$?"
+      R="$(_null "$RAW_INPUT")" || return "$?"
+      eval value=${R[0]}
+      eval next=${R[1]}
       ;;
     '{')
-      _object "$current_path" "$RAW_INPUT" || return "$?"
+      R="$(_object "$current_path" "$RAW_INPUT")" || return "$?"
+      eval value=${R[0]}
+      eval next=${R[1]}
       ;;
     '[')
-      _array "$current_path" "$RAW_INPUT" || return "$?"
+      R="$(_array "$current_path" "$RAW_INPUT")" || return "$?"
+      eval value=${R[0]}
+      eval next=${R[1]}
       ;;
     *)
       _ERROR_SYNTAX "$GLOBAL_COUNTER" "$FIRST_CHAR" >&2
       return 99
       ;;
   esac
+  if [ "$save_value" = "true" ]; then
+    save_data "$current_path" "$value"
+  fi
   printf "%s\n" "$value"
-}
-
-_s_consume() {
-  [ -z "$1" ] && return 1
-  printf "%s" "$2$1"
 }

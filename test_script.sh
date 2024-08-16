@@ -12,5 +12,4 @@ b() {
   SOME_ENV="$((SOME_ENV + 5))"
 }
 
-
 echo "$SOME_ENV"

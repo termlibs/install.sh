@@ -204,7 +204,6 @@ semver_bump_to() {
   semver_new "$M" "$m" "$p" "$s"
 }
 
-
 semver_strip_to() {
   local M m p s
   read -r M m p s <<< "$(semver_parse "$1")"

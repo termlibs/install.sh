@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 # shellcheck source=../../libs/json/main.sh
 source ./libs/json/main.sh
 
@@ -14,5 +13,5 @@ test_string='
 {"this": "is", "a": "test"}
 '
 echo "$test_string"
-parse_json "." "$test_string"
+parse_json "" "$test_string"
 cat "$__DATAFILE__"
