@@ -14,4 +14,4 @@ test_string='
 '
 echo "$test_string"
 parse_json "" "$test_string"
-cat "$__DATAFILE__"
+echo cat "$__DATAFILE__"

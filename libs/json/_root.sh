@@ -20,43 +20,43 @@ parse_json() {
   local save_value="false"
   case "$CHAR" in
     '"')
-      R="$(_string "$RAW_INPUT")" || return "$?"
-      eval value=${R[0]}
-      eval next=${R[1]}
+      eval R="$(_string "$RAW_INPUT")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       save_value="true"
       ;;
     [[:digit:]] | '-')
-      R="$(_number "$RAW_INPUT")" || return "$?"
-      eval value=${R[0]}
-      eval next=${R[1]}
+     eval R="$(_number "$RAW_INPUT")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       save_value="true"
       ;;
     "t")
-      R="$(_true "$RAW_INPUT")" || return "$?"
-      eval value=${R[0]}
-      eval next=${R[1]}
+     eval R="$(_true "$RAW_INPUT")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       save_value="true"
       ;;
     "f")
-      R="$(_false "$RAW_INPUT")" || return "$?"
-      eval value=${R[0]}
-      eval next=${R[1]}
+     eval R="$(_false "$RAW_INPUT")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       save_value="true"
       ;;
     "n")
-      R="$(_null "$RAW_INPUT")" || return "$?"
-      eval value=${R[0]}
-      eval next=${R[1]}
+     eval R="$(_null "$RAW_INPUT")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       ;;
     '{')
-      R="$(_object "$current_path" "$RAW_INPUT")" || return "$?"
-      eval value=${R[0]}
-      eval next=${R[1]}
+     eval R="$(_object "$current_path" "$RAW_INPUT")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       ;;
     '[')
-      R="$(_array "$current_path" "$RAW_INPUT")" || return "$?"
-      eval value=${R[0]}
-      eval next=${R[1]}
+     eval R="$(_array "$current_path" "$RAW_INPUT")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       ;;
     *)
       _ERROR_SYNTAX "$GLOBAL_COUNTER" "$FIRST_CHAR" >&2
@@ -66,5 +66,5 @@ parse_json() {
   if [ "$save_value" = "true" ]; then
     save_data "$current_path" "$value"
   fi
-  printf "%s\n" "$value"
+  printf '( %s %s )' "${value@Q}" "${next@Q}"
 }

@@ -50,9 +50,9 @@ _s_2_5() {
         ;;
     esac
   done
-  eval R="$(_s_2 "$REMAINDER" "$value")" || return "$?"
-  eval value="${R[0]}"
-  eval next="${R[1]}"
+eval R="$(_s_2 "$REMAINDER" "$value")" || return "$?"
+  value=${R[0]}
+  next=${R[1]}
   printf "( %s %s )" "${value@Q}" "${next@Q}"
 }
 
@@ -70,18 +70,18 @@ _s_1() {
   local value="${2}${CHAR}"
   case "$CHAR" in
     \")
-      value="${value%\"}"
-      next="${REMAINDER}"
+      value="${value%\"}" # remove quote
+      next="${REMAINDER#\"}" # remove the quote
       ;;
     \\)
       eval R="$(_s_0 "$REMAINDER" "$value")" || return "$?"
-      value="${R[0]}"
-      next="${R[1]}"
+      value=${R[0]}
+      next=${R[1]}
       ;;
     *)
-      eval R="$(_s_1 "$REMAINDER" "$value")" || return "$?"
-      value="${R[0]}"
-      next="${R[1]}"
+     eval R="$(_s_1 "$REMAINDER" "$value")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       ;;
   esac
   printf "( %s %s )" "${value@Q}" "${next@Q}"
@@ -97,13 +97,13 @@ _s_0() {
   case "$CHAR" in
     \" | \\ | \/ | b | f | n | r | t | 8)
       eval R="$(_s_2 "$REMAINDER" "$value")" || return "$?"
-      value="${R[0]}"
-      next="${R[1]}"
+      value=${R[0]}
+      next=${R[1]}
       ;;
     u)
       eval R="$(_s_2_5 "$REMAINDER" "$value")" || return "$?"
-      value="${R[0]}"
-      next="${R[1]}"
+      value=${R[0]}
+      next=${R[1]}
       ;;
     *)
       return 99
@@ -123,13 +123,13 @@ _string() {
   case "$CHAR" in                                      # we are at the first char after the quote
     \\)
       eval R="$(_s_0 "$REMAINDER" "$CHAR")" || return "$?"
-      value="${R[0]}"
-      next="${R[1]}"
+      value=${R[0]}
+      next=${R[1]}
       ;;
     *)
-      eval R="$(_s_1 "$REMAINDER" "$CHAR")" || return "$?"
-      value="${R[0]}"
-      next="${R[1]}"
+     eval R="$(_s_1 "$REMAINDER" "$CHAR")" || return "$?"
+      value=${R[0]}
+      next=${R[1]}
       ;;
   esac
   printf '( %s %s )' "${value@Q}" "${next@Q}"

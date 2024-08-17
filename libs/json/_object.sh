@@ -23,28 +23,28 @@ _o_0() {
   # parse the key
   local key_value value next R
   eval R="$(_string "$2")" || return "$?"
-  key_value="${R[0]}"
-  next="${R[1]}"
+  key_value=${R[0]}
+  next=${R[1]}
   local current_path="${1}${KEY_DIVIDER}${key_value}"
   next="$(slurp_whitespace "${next}")" # remove whitespace
   # next character _must be a colon
   [ "${next:0:1}" = ':' ] || return 99 # remove whitespace
   eval R="$(parse_json "$current_path" "$(slurp_whitespace "${next:1}")")" || return "$?"
-  value="${R[0]}"
-  next="${R[1]}"
+  value=${R[0]}
+  next=${R[1]}
   next="$(slurp_whitespace "$next")" # remove whitespace
-  next="${next:1}"
   case "${next:0:1}" in
-    ,)
-      # do it again!
-      eval R="$(_o_0 "$current_path" "${next:1}")" || return "$?"
-      value="${R[0]}"
-      next="${R[1]}"
-      ;;
-    \}) ;;
-    *)
-      return 99
-      ;;
+  ,)
+    # TODO:  this munks up the keys, we can't just reuse the above so this is next thing that needs fixies
+    # do it again!
+    eval R="$(_o_0 "$current_path" "${next:1}")" || return "$?"
+    value=${R[0]}
+    next=${R[1]}
+    ;;
+  \}) ;;
+  *)
+    return 99
+    ;;
   esac
   printf '( %s %s )' "${value@Q}" "${next@Q}"
 }
@@ -57,15 +57,15 @@ _object() {
   local CHAR="${TRIMMED:0:1}"
   local REMAINDER="${TRIMMED:1}"
   [ "$CHAR" = '}' ] && [ -z "$REMAINDER" ] && return 0 # empty object
-  case "$CHAR" in # we are at the first char after the quote
-    \")
-      eval R="$(_o_0 "$current_path" "$TRIMMED")" || return "$?"
-      eval value=${R[0]}
-      eval next=${R[1]}
-      ;;
-    *)
-      return 99
-      ;;
+  case "$CHAR" in                                      # we are at the first char after the quote
+  \")
+    eval R="$(_o_0 "$current_path" "$TRIMMED")" || return "$?"
+    value=${R[0]}
+    next=${R[1]}
+    ;;
+  *)
+    return 99
+    ;;
   esac
   printf '( %s %s )' "${value@Q}" "${next@Q}"
 }

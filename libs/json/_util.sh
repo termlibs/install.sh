@@ -8,7 +8,7 @@ _ERROR_SYNTAX() {
 save_data() {
   local path="$1"
   local value="$2"
-  printf "%s=%s\n" "$path" "${value@P}" >> "$__DATAFILE__"
+  printf "%s=%s\n" "$path" "${value@Q}" >> "$__DATAFILE__"
 }
 
 slurp_whitespace() {
