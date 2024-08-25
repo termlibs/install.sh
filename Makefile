@@ -16,6 +16,10 @@ set-version:
 shfmt:
 	@shfmt -w -i 2 -ci -sr -ln bash "${FILE}"
 
+build:
+	@if [ -z "${FILE}" ]; then printf "FILE not provided\n" && exit 1 ; fi
+	@./publish "${FILE}"
+
 phony: build-install-all
 	@echo "Done"
 

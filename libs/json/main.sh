@@ -5,6 +5,8 @@ _SCRIPT_SH_VERSION=0.0.1
 export __DATAFILE__="$(mktemp -t json_basher.XXXXXXXXXX)"
 trap 'rm -f "$__DATAFILE__"' EXIT
 
+# shellcheck source=../common.sh
+source ./libs/common.sh
 # shellcheck source=./_util.sh
 source ./libs/json/_util.sh
 # shellcheck source=./_string.sh

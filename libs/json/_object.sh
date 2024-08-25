@@ -10,6 +10,7 @@ source ./libs/json/_number.sh
 source ./libs/json/_array.sh
 
 # shellcheck source=./_root.sh
+source ./libs/json/_root.sh
 
 # source grammar from https://ecma-international.org/publications-and-standards/standards/ecma-404/
 #               ┌─────────────────────────────┐
