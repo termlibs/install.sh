@@ -11,6 +11,10 @@ _ansi_bold="\e[1m"
 
 declare -A _LOGLEVEL=([TRACE]=0 [DEBUG]=1 [INFO]=2 [WARN]=3 [ERROR]=4 [FATAL]=5)
 
+# elog()
+# log messages with timestamp, log level, function name and message
+# options: log level, force
+# args: message
 elog() {
   local opts level force ws pad_level ll timestamp use_color fn_name
   opts="$(getopt -o l:f --long level:force -n 'assert_string_eq' -- "$@")"

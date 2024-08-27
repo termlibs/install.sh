@@ -13,14 +13,14 @@ assert_string_eq() {
   fi
 }
 
-assert_error() {
-  opts="$(getopt -o "" --long code: -- "$@")"
+assert_exit_code() {
+  opts="$(getopt -o "c:" --long code: -- "$@")"
   [ $? -eq 0 ] || return 1
   eval set -- "$opts"
-  local code=""
+  local code="-1"
   while true; do
     case "$1" in
-      --code)
+      --code|-c)
         code="$2"
         shift 2
         ;;
@@ -35,23 +35,10 @@ assert_error() {
   shift
   $fn "$@" #> /dev/null 2>&1
   _rc="$?"
-  if [ "$_rc" -eq 0 ]; then
-    if [ -n "$code" ]; then
-      elog -l ERROR "assertion failed in $fn: expected error code $code but got none"
-      return 1
-    else
-      elog -l ERROR "assertion failed in $fn: expected error but got none"
-    fi
+  if [ "$_rc" -ne "$code" ]; then
+    elog -l ERROR "assertion failed in $fn: expected return code $code but got $_rc"
     return 1
   else
-    if [ -n "$code" ]; then
-      if [ "$code" != "$_rc" ]; then
-        elog -l ERROR "assertion failed in $fn: expected error code $code but got $_rc"
-        return 1
-      fi
-      elog -l INFO "assertion passed in $fn: expected error code $code and got error code $_rc"
-    else
-      elog -l INFO "assertion passed in $fn: expected error"
-    fi
+    elog -l INFO "assertion passed in $fn: return code was as expected ($_rc)"
   fi
 }

@@ -45,19 +45,26 @@ _get_info() {
   while true; do
     IFS= read -r line
     read -r shortname repo source file_pattern archive_path archive_depth <<< "$line"
-    if [[ ${shortname:0:1} == "-" ]] || [[ $shortname == "shortname" ]]; then
-      continue
-    fi
-    if [ -z "$shortname" ]; then
-      break
-    fi
-    if [ "$shortname" = "$app" ]; then
-      printf "%s %s %s %s %s %s\n" "${shortname@Q}" "${repo@Q}" "${source@Q}" "${file_pattern@Q}" "${archive_path@Q}" "${archive_depth@Q}"
-      return 0
-    fi
+    case "$shortname" in
+      "$app")
+        break
+        ;;
+      "shortname")
+        if [ "$app" == "_keys" ]; then
+          break
+        fi
+        continue
+        ;;
+      "")
+        printf "error: unable to find info for app '%s'\n" "$app" >&2
+        return 1
+        ;;
+      *)
+        continue
+        ;;
+    esac
   done <<< "$_APP_MD"
-  printf "error: unable to find info for app '%s'\n" "$app" >&2
-  return 1
+  printf "%s %s %s %s %s %s\n" "${shortname@Q}" "${repo@Q}" "${source@Q}" "${file_pattern@Q}" "${archive_path@Q}" "${archive_depth@Q}"
 }
 
 _is_archive() {
@@ -148,7 +155,7 @@ _assert_yq() {
 }
 
 _build_link() {
-  local asset_match_pattern tag vversion response url __
+  local asset_match_pattern vversion response url __
   _assert_yq || return 1
   local version="$2"
   local line="$(_get_info "$1")"
@@ -190,10 +197,11 @@ _download_release() {
   local app version download_url
   app=$1
   version=$2
-  read -r shortname repo source file_pattern archive_path archive_depth <<< "$(_get_info "$app")"
+  eval R="( $(_get_info "$app") )"
+  read -r shortname repo source file_pattern archive_path archive_depth <<< "${R[@]}"
   case "$source" in
     "github")
-      download_url="$(_get_gh_release "$repo" "$file_pattern" "$version")"
+      download_url="$(_build_link "$app" "$version")"
       ;;
     "url")
       # TODO: helm special_case_goes_here  for grabbing version
