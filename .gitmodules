@@ -1,0 +1,6 @@
+[submodule "libs/build"]
+	path = libs/build
+	url = https://github.com/termlibs/build.sh
+[submodule "libs/logging"]
+	path = libs/logging
+	url = https://github.com/termlibs/logging.sh

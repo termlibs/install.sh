@@ -19,10 +19,11 @@ while true; do
     break
   fi
   printf "  - %s" "$shortname"
-  if [[ "$source" == github ]]; then
-    printf " ( $_GITHUB/%s )" "$repo"
+  if [[ $source == github ]]; then
+    printf " ( $_GITHUB_API/%s )" "$repo"
   elif
-    [[ "$source" == url ]]; then
+    [[ $source == url ]]
+  then
     printf " ( https://%s/%s )" "$repo" "$(dirname "$file_pattern")"
   fi
   printf "\n"
@@ -51,6 +52,13 @@ done
 for bad in \
   "file" \
   "file.tar.bz2" \
-  "file.tar.xz.gz"; do
+  "file.tar.xz.gz"; do # bz2 not supported atm
   assert_exit_code -c 1 _is_archive "$bad"
 done
+
+if [ "$(_download_release yq v4.44.3 | wc -c)" -gt "$((1024 * 1024))" ]; then
+  elog -l INFO -n "${BASH_SOURCE[0]}" "Successfully downloaded yq binary"
+else
+  elog -l ERROR -n "${BASH_SOURCE[0]}" "Failed to download yq"
+  exit 1
+fi

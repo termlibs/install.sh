@@ -17,7 +17,7 @@ declare -A _LOGLEVEL=([TRACE]=0 [DEBUG]=1 [INFO]=2 [WARN]=3 [ERROR]=4 [FATAL]=5)
 # args: message
 elog() {
   local opts level force ws pad_level ll timestamp use_color fn_name
-  opts="$(getopt -o l:f --long level:force -n 'assert_string_eq' -- "$@")"
+  opts="$(getopt -o l:fn: --long level:force,name: -n 'assert_string_eq' -- "$@")"
   [ $? -ne 0 ] && return 1
   eval set -- "$opts"
   level="${LOGLEVEL:-INFO}"
@@ -31,6 +31,10 @@ elog() {
       -f | --force)
         force=true
         shift
+        ;;
+      -n | --name)
+        fn_name="$2"
+        shift 2
         ;;
       --)
         shift
@@ -54,10 +58,11 @@ elog() {
 
   timestamp="$(date +%H:%M:%S)"
   use_color="$([[ "$TERM" = *"color" ]] && echo true || echo false)"
-  if [[ "$use_color" = true ]]; then
-    fn_name="${_ansi_bold}${FUNCNAME[1]}${_ansi_reset}"
-  else
+  if [[ -z "$fn_name" ]]; then
     fn_name="${FUNCNAME[1]}"
+  fi
+  if [[ "$use_color" = true ]]; then
+    fn_name="${_ansi_bold}${fn_name}${_ansi_reset}"
   fi
   case $level in
     TRACE)
