@@ -6,6 +6,11 @@ source ./tests/utils.sh
 # shellcheck source=../scripts/main.sh
 source ./scripts/main.sh
 
+# shellcheck source=../../logging.sh/logging.sh
+source ../logging.sh/logging.sh
+
+# shellcheck source=../../test.sh/assert.sh
+source ../test.sh/assert.sh
 
 tempfiles=()
 trap 'rm -f "${tempfiles[@]}"' EXIT
