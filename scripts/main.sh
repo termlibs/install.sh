@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#VERSION="0.0.1"
+#GIT=""
+eval set -- "$@"
+
 
 # shellcheck disable=SC2155 #_TEMPDIR if we need it, only create if we don't have it
 _TEMPDIR="$(mktemp -dut install-all-XXXXXX)"
@@ -89,10 +93,11 @@ _is_archive() {
 }
 
 _save_bin() {
-  local path archive_path archive_depth custom_release_tag app bin_path version file_pattern shortname app
+  local path archive_path archive_depth app bin_path version file_pattern shortname app
   # set -x && trap 'set +x' EXIT
   # try to read from stdin
   # evals are used here because these are shell quoted strings
+  data64="$(base64 -w0 < /dev/stdin)"
   eval app="${1}"
   path="${2}/${4}"
   version="${3}"
@@ -100,26 +105,33 @@ _save_bin() {
   file_pattern="${5}"
   archive_path="${6}"
   archive_depth="${7}"
-  printf "DEBUG: path=%s archive_path=%s archive_depth=%s app=%s version=%s\n" "$path" "$archive_path" "$archive_depth" "$app" "${version@Q}" >&2
-  if [ -z "$archive_depth" ] || [[ "$archive_depth" == "-" ]]; then
-    cat > "$path" < /dev/stdin
+  path="$(realpath "$path")"
+  mkdir -p "$(dirname "$path")"
+  printf "DEBUG: saving %s to %s with length %d\n" "$shortname" "$path" "${#data64}"
+  printf "path=%s version=%s shortname=%s file_pattern=%s archive_path=%s archive_depth=%s\n" "$path" "$version" "$shortname" "$file_pattern" "$archive_path" "$archive_depth"
+  if [ -z "$archive_depth" ] || [[ $archive_depth == "-" ]]; then
+    base64 -d > "$path" <<< "$data64"
+    chmod +x "$path"
     return 0
   fi
   with-tempdir cd "$_TEMPDIR"
-  mkdir "$app" && cd "$app"
-
+  mkdir "$app" && cd "$app" # do  we need to do this?
   case "$file_pattern" in
     *.tar)
-      tar --strip-components="$archive_depth" -Oxf - "$archive_path" > "$shortname" < /dev/stdin
+      base64 -d <<< "$data64" \
+        | tar --strip-components="$archive_depth" --wildcards -Oxf - "$archive_path" > "$shortname"
       ;;
     *.tar.gz | *.tgz)
-      tar --strip-components="$archive_depth" -Oxzf - "$archive_path" > "$shortname" < /dev/stdin
+      base64 -d <<< "$data64" \
+        | tar --strip-components="$archive_depth" --wildcards -Oxzf - "$archive_path" > "$shortname"
       ;;
     *.zip)
-      unzip -d "$archive_path" - < /dev/stdin #  todo components i forget the syntax offhand
+      base64 -d <<< "$data64" \
+        | unzip -d "$archive_path" - #  todo components i forget the syntax offhand
       ;;
     *.tar.xz)
-      xz -d --stdout -q | tar --strip-components="$archive_depth" -Oxf - "$archive_path" > "$shortname" < /dev/stdin
+      base64 -d <<< "$data64" \
+        | xz -d --stdout -q | tar --strip-components="$archive_depth" -Oxf - "$archive_path" > "$shortname"
       ;;
     *)
       return $_E_GENERIC_ERROR
@@ -138,7 +150,7 @@ _save_bin() {
 # INTERNAL
 _urlget() {
   if command -v curl &> /dev/null; then
-    curl -fsSLo - "$1" 2> /dev/null
+    curl -fsSL "$1" 2> /dev/null
   elif command -v wget &> /dev/null; then
     wget -qO- "$1" 2> /dev/null
   else
@@ -147,9 +159,19 @@ _urlget() {
   fi
 }
 
+# _link_from_release_by_pattern
+# -----------------------------
+# Find the link to download an asset from a github release by searching for a pattern
+# in the asset name.
+#
+# Args:
+#   $1: The pattern to search for (should be a regex)
+#
+# Returns:
+#   The link(s) to download the matched asset
 _link_from_release_by_pattern() {
   _assert_yq || return $_E_GENERIC_ERROR
-  cat - | yq ".assets[] | select(.name | test(\"$1\$\")) | .browser_download_url"
+  cat /dev/stdin | yq ".assets[] | select(.name | test(\"$1\$\")) | .browser_download_url"
 }
 
 # we have our own special function here since we use it in the other install functions
@@ -163,8 +185,18 @@ _assert_yq() {
   fi
 }
 
+# _build_link
+# ------------
+# Build a link to download the latest release of the given app
+#
+# Args:
+#   $1: The app to download
+#   $2: The version to download (optional, defaults to latest)
+#
+# Returns:
+#   The link to download the latest release of the given app
 _build_link() {
-  local asset_match_pattern version vversion response url
+  local asset_match_pattern version vversion response url custom_release_tag
   _assert_yq || return $_E_GENERIC_ERROR
   local version="$2"
   local line="$(_get_info "$1")"
@@ -180,6 +212,16 @@ _build_link() {
   printf "%s\n" "$url"
 }
 
+# _get_latest_vversion
+# -------------------
+# Get the latest version of the given app
+#
+# Args:
+#   $1: The app to get the latest version of
+#   $2: The version to get (optional, defaults to latest)
+#
+# Returns:
+#   The latest version of the given app, prefixed with v
 _get_latest_vversion() {
   local asset_match_pattern tag vversion response url __
   _assert_yq || return $_E_GENERIC_ERROR
@@ -206,6 +248,17 @@ _get_latest_vversion() {
   printf "%s\n" "$vversion"
 }
 
+
+# _download_release
+# ----------------
+# Download a release of the given app
+#
+# Args:
+#   $1: The app to download
+#   $2: The version to download (optional, defaults to latest)
+#
+# Returns:
+#   The contents of the release url
 _download_release() {
   local app version download_url
   app=$1
@@ -224,6 +277,10 @@ _download_release() {
       fi
       download_url="https://${repo}/${file_pattern/VERSION/$version}"
       ;;
+    "pip")
+      printf "error: python not supported yet but is coming!\n" "$app" >&2
+      return $_E_GENERIC_ERROR
+      ;;
     *)
       echo "error: unknown source type $source" >&2
       return $_E_GENERIC_ERROR
@@ -232,6 +289,23 @@ _download_release() {
   _urlget "$download_url"
 }
 
+# install-it
+# -----------
+# Install a single app with a link to it's download
+#
+# Usage: install-it [--version VERSION ] [ --prefix PREFIX ] <app>
+#
+# Options:
+#   -v, --version VERSION
+#     The version to install, defaults to latest
+#   -p, --prefix PREFIX
+#     The prefix to install to, defaults to ~/.local or $PWD if ~/.local is not a directory
+#   -f, --force
+#     Force install even if already installed (or update to a version)
+#
+# Returns:
+#   0 if successful
+#   $_E_GENERIC_ERROR on error
 install-it() {
   local opts PREFIX VERSION force download_link
   opts="$(getopt -o "fv:p:" --long "force,version:,prefix:" -n "${FUNCNAME[0]}" -- "$@")"
@@ -272,8 +346,6 @@ install-it() {
   done
   local app="$1"
   [ -d "$PREFIX/bin" ] || mkdir -p "$PREFIX/bin"
-
-  set -x
   read -r shortname repo source file_pattern archive_path archive_depth custom_release_tag <<< "$(_get_info "$app")"
   eval shortname="$shortname" repo="$repo" source="$source" file_pattern="$file_pattern" archive_path="$archive_path" archive_depth="$archive_depth"
   download_link="$(_build_link "$app" "$VERSION")" || return $_E_GENERIC_ERROR
@@ -356,6 +428,6 @@ install() {
   esac
 }
 
-if [[ ${BASH_SOURCE[0]} == "${0}" ]] ; then
+if [[ ${BASH_SOURCE[0]} == "${0}" ]]; then
   "$@"
 fi

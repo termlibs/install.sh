@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 
-# shellcheck source=../libs/assert.sh
-source ./libs/assert.sh
+# shellcheck source=./utils.sh
+source ./tests/utils.sh
 
-# shellcheck source=../scripts/install_all.sh
-source ./scripts/install_all.sh
+# shellcheck source=../scripts/main.sh
+source ./scripts/main.sh
 
+
+tempfiles=()
+trap 'rm -f "${tempfiles[@]}"' EXIT
 declare -a data keys
-declare shortname repo source file_pattern archive_path archive_depth
 
 printf "Supported apps:\n"
 while true; do
@@ -56,7 +58,10 @@ for bad in \
   assert_exit_code -c 1 _is_archive "$bad"
 done
 
-if [ "$(_download_release yq v4.44.3 | wc -c)" -gt "$((1024 * 1024))" ]; then
+app_temp=$(mktemp)
+tempfiles+=("$app_temp")
+_download_release yq v4.44.3 > "$app_temp"
+if is_app "$app_temp"; then
   elog -l INFO -n "${BASH_SOURCE[0]}" "Successfully downloaded yq binary"
 else
   elog -l ERROR -n "${BASH_SOURCE[0]}" "Failed to download yq"
