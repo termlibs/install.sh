@@ -3,7 +3,6 @@
 #GIT=""
 eval set -- "$@"
 
-
 # shellcheck disable=SC2155 #_TEMPDIR if we need it, only create if we don't have it
 _TEMPDIR="$(mktemp -dut install-all-XXXXXX)"
 trap '[ -d "$_TEMPDIR" ] && rm -rf "$_TEMPDIR"' EXIT
@@ -107,8 +106,6 @@ _save_bin() {
   archive_depth="${7}"
   path="$(realpath "$path")"
   mkdir -p "$(dirname "$path")"
-  printf "DEBUG: saving %s to %s with length %d\n" "$shortname" "$path" "${#data64}"
-  printf "path=%s version=%s shortname=%s file_pattern=%s archive_path=%s archive_depth=%s\n" "$path" "$version" "$shortname" "$file_pattern" "$archive_path" "$archive_depth"
   if [ -z "$archive_depth" ] || [[ $archive_depth == "-" ]]; then
     base64 -d > "$path" <<< "$data64"
     chmod +x "$path"
@@ -202,7 +199,9 @@ _build_link() {
   local line="$(_get_info "$1")"
   eval line="( $line )"
   read -r shortname repo source file_pattern archive_path archive_depth custom_release_tag <<< "${line[*]}"
-  [ -z "$version" ] && version="$(_get_latest_vversion "$shortname")"
+  if [ -z "$version" ] || [ "$version" = "latest" ]; then
+    version="$(_get_latest_vversion "$shortname")"
+  fi
   version="${version#v}"
   vversion="v${version}"
   response="$(_urlget "$_GITHUB_API/repos/$repo/releases/tags/$vversion")"
@@ -248,7 +247,6 @@ _get_latest_vversion() {
   printf "%s\n" "$vversion"
 }
 
-
 # _download_release
 # ----------------
 # Download a release of the given app
@@ -289,7 +287,7 @@ _download_release() {
   _urlget "$download_url"
 }
 
-# install-it
+# install
 # -----------
 # Install a single app with a link to it's download
 #
@@ -306,7 +304,7 @@ _download_release() {
 # Returns:
 #   0 if successful
 #   $_E_GENERIC_ERROR on error
-install-it() {
+install() {
   local opts PREFIX VERSION force download_link
   opts="$(getopt -o "fv:p:" --long "force,version:,prefix:" -n "${FUNCNAME[0]}" -- "$@")"
   # shellcheck disable=SC2181
@@ -331,6 +329,20 @@ install-it() {
       --force)
         force=true # since we have an existence check for when this is run internally, we want the ability to run it again
         shift
+        ;;
+      --help | -h)
+        # command help
+        printf "$USAGE\n"
+        printf "\tinstall an app\n\n"
+        printf "options:\n"
+        printf "\t--version VERSION\tthe version to install, defaults to latest\n"
+        printf "\t--prefix  PREFIX \tthe prefix to install to, defaults to \$HOME/.local\n"
+        printf "\t--force\t        \tforce install even if already installed (or update to a version)\n"
+        printf "\t--help\t         \tshow this help\n"
+        printf "\n"
+        printf " currently supported apps:\n"
+        print_supported_apps
+        return
         ;;
       --)
         shift
@@ -386,48 +398,4 @@ print_supported_apps() {
   done <<< "$_APP_MD"
 }
 
-install() {
-  local opts PREFIX VERSION force USAGE
-  opts="$(getopt -o "fv:p:" --long "help,force,version:,prefix:" -n "${FUNCNAME[0]}" -- "$@")"
-  # shellcheck disable=SC2181
-  [ $? -ne 0 ] && return "$_E_CLI_PARSE_ERROR"
-
-  eval set -- "$opts"
-  case "$1" in
-    --prefix | -p)
-      PREFIX="$2"
-      shift 2
-      ;;
-    --version | -v)
-      VERSION="$2"
-      shift 2
-      ;;
-    --force)
-      force=true # since we have an existence check for when this is run internally, we want the ability to run it again
-      ;;
-    --help)
-      # command help
-      printf "$USAGE\n"
-      printf "\tinstall an app\n\n"
-      printf "options:\n"
-      printf "\t--version VERSION\tthe version to install, defaults to latest\n"
-      printf "\t--prefix  PREFIX \tthe prefix to install to, defaults to \$HOME/.local\n"
-      printf "\t--force\t        \tforce install even if already installed (or update to a version)\n"
-      printf "\t--help\t         \tshow this help\n"
-      printf "\n"
-      printf " currently supported apps:\n"
-      print_supported_apps
-      return
-      ;;
-    --)
-      shift
-      ;;
-    *)
-      exit 1 # should never happen, getopt should fail with an error
-      ;;
-  esac
-}
-
-if [[ ${BASH_SOURCE[0]} == "${0}" ]]; then
-  "$@"
-fi
+install "$@"
